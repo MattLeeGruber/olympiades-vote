@@ -1,21 +1,25 @@
-import { createClient } from '@turso/client';
+import { createClient } from "@libsql/client";
 
 const db = createClient({
   url: process.env.TURSO_DATABASE_URL!,
   authToken: process.env.TURSO_AUTH_TOKEN!
 });
 
-async function getKV<T=any>(key: string): Promise<T|null> {
-  const row = await db.execute("SELECT value FROM kv WHERE key = ?", [key]);
-  if (!row.rows.length) return null;
-  return JSON.parse(row.rows[0].value as string);
+async function getKV<T = any>(key: string): Promise<T | null> {
+  const result = await db.execute({
+    sql: "SELECT value FROM kv WHERE key = ?",
+    args: [key],
+  });
+  if (result.rows.length === 0) return null;
+  const raw = result.rows[0].value as string;
+  return JSON.parse(raw);
 }
 
 async function setKV(key: string, value: any) {
-  await db.execute("INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)", [
-    key,
-    JSON.stringify(value)
-  ]);
+  await db.execute({
+    sql: "INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)",
+    args: [key, JSON.stringify(value)],
+  });
 }
 
 
