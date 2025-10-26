@@ -1,12 +1,24 @@
 import { createClient } from "@libsql/client";
 
-const db = createClient({
-  url: process.env.TURSO_DATABASE_URL!,
-  authToken: process.env.TURSO_AUTH_TOKEN!
-});
+function db() {
+  const url = process.env.TURSO_DATABASE_URL!;
+  const token = process.env.TURSO_AUTH_TOKEN!;
+  return createClient({ url, authToken: token });
+}
+
+async function ensureTable() {
+  const client = db();
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS kv (
+      key   TEXT PRIMARY KEY,
+      value TEXT
+    );
+  `);
+}
 
 async function getKV<T = any>(key: string): Promise<T | null> {
-  const result = await db.execute({
+  const client = db();
+  const result = await client.execute({
     sql: "SELECT value FROM kv WHERE key = ?",
     args: [key],
   });
@@ -16,7 +28,8 @@ async function getKV<T = any>(key: string): Promise<T | null> {
 }
 
 async function setKV(key: string, value: any) {
-  await db.execute({
+  const client = db();
+  await client.execute({
     sql: "INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)",
     args: [key, JSON.stringify(value)],
   });
@@ -25,20 +38,48 @@ async function setKV(key: string, value: any) {
 const WORDS = ["SPARTIATE","PHENIX","SCORPION","HYDRE","CENTAURE","CYCLOPE","MANTICORE","CERBERE","PEGASE","HARPYE"];
 const genCode = () => `${WORDS[Math.floor(Math.random()*WORDS.length)]}-${100+Math.floor(Math.random()*900)}`;
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ ok:false, error:'Method Not Allowed' });
+// lecture sûre du body (fonctionne avec Vercel)
+async function readBody(req: any) {
+  try {
+    if (req.body) {
+      if (typeof req.body === "string") return JSON.parse(req.body);
+      return req.body;
+    }
+    const chunks: Uint8Array[] = [];
+    for await (const c of req) chunks.push(c);
+    const raw = Buffer.concat(chunks).toString("utf8");
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
 
-  const { selectedIds = [], theme = 'bronze' } = req.body || {};
-  const code = genCode();
+export default async function handler(req: any, res: any) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ ok: false, error: "Method Not Allowed" });
+  }
+  try {
+    await ensureTable();
 
-  const session = {
-    code,
-    theme,
-    selectedIds,
-    createdAt: Date.now(),
-    votes: [] as any[]
-  };
+    const body = await readBody(req);
+    const { selectedIds = [], theme = "bronze" } = body || {};
+    if (!Array.isArray(selectedIds)) {
+      return res.status(400).json({ ok: false, error: "selectedIds doit être un tableau" });
+    }
 
-  await setKV(`session:${code}`, session);
-  res.status(200).json({ ok:true, code, url:`/join/${code}` });
+    const code = genCode();
+    const session = {
+      code,
+      theme,
+      selectedIds,
+      createdAt: Date.now(),
+      votes: [] as any[],
+    };
+
+    await setKV(`session:${code}`, session);
+    return res.status(200).json({ ok: true, code, url: `/join/${code}` });
+  } catch (e: any) {
+    // log lisible côté client si jamais
+    return res.status(500).json({ ok: false, error: e?.message || String(e) });
+  }
 }
