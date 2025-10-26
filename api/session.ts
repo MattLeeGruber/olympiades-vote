@@ -1,12 +1,23 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { kv } from '@vercel/kv';
+import { createClient } from '@turso/client';
+
+const db = createClient({
+  url: process.env.TURSO_DATABASE_URL!,
+  authToken: process.env.TURSO_AUTH_TOKEN!
+});
 
 async function getKV<T=any>(key: string): Promise<T|null> {
-  return (await kv.get(key)) as T | null;
+  const row = await db.execute("SELECT value FROM kv WHERE key = ?", [key]);
+  if (!row.rows.length) return null;
+  return JSON.parse(row.rows[0].value as string);
 }
+
 async function setKV(key: string, value: any) {
-  await kv.set(key, value);
+  await db.execute("INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)", [
+    key,
+    JSON.stringify(value)
+  ]);
 }
+
 
 const WORDS = ["SPARTIATE","PHENIX","SCORPION","HYDRE","CENTAURE","CYCLOPE","MANTICORE","CERBERE","PEGASE","HARPYE"];
 const genCode = () => `${WORDS[Math.floor(Math.random()*WORDS.length)]}-${100+Math.floor(Math.random()*900)}`;
