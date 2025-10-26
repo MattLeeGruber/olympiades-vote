@@ -1,684 +1,523 @@
-import React, { useEffect, useMemo, useState } from "react";
+// src/App.tsx
+import React from "react";
 
-/* =======================
-   API base
-======================= */
-const API = "/api";
+/** ===========================
+ *  Helpers UI
+ *  =========================== */
 
-/* =======================
-   Types
-======================= */
-type ModeStats = { phy: number; adr: number; ref: number; sab: number; desc: string };
+function StarRating({ value, max = 5 }: { value: number; max?: number }) {
+  return (
+    <div className="flex gap-1">
+      {Array.from({ length: max }).map((_, i) => (
+        <span
+          key={i}
+          className={i < value ? "text-amber-500" : "text-slate-400/40"}
+          aria-hidden="true"
+        >
+          ★
+        </span>
+      ))}
+    </div>
+  );
+}
+
+type Mode = "normal" | "hardcore";
+
 type Epreuve = {
   id: string;
-  nom: string;
-  categorie: string;
+  titre: string;
   duree: string;
-  normal: ModeStats;
-  hardcore: ModeStats | null;
-  imageUrl?: string;
+  descriptionCourte: string;
+  // niveaux par mode
+  physique: Record<Mode, number>;
+  adresse: Record<Mode, number>;
+  reflexion: Record<Mode, number>;
+  sabotage: Record<Mode, number>;
+  hasHardcore?: boolean;
 };
 
-type Item = { key: string; mode: "normal" | "hardcore"; ev: Epreuve };
-type From = "pool" | "incontournable" | "chaud" | "avoir" | "non";
-type BucketId = "incontournable" | "chaud" | "avoir" | "non";
-
-/* =======================
-   Données épreuves (extraites du tableau)
-======================= */
-const DATA: Epreuve[] = [
+/** ===========================
+ *  Données démo (remplace par ton import si tu as déjà tout)
+ *  =========================== */
+const EPREUVES: Epreuve[] = [
   {
     id: "sentence-pilier",
-    nom: "La Sentence du Pilier",
-    categorie: "Adresse",
+    titre: "La Sentence du Pilier",
     duree: "5 - 10 min",
-    normal: {
-      phy: 1,
-      adr: 5,
-      ref: 0,
-      sab: 0,
-      desc: "Lancez et faites tomber toutes les cibles. La distance augmente à chaque palier."
-    },
-    hardcore: {
-      phy: 1,
-      adr: 5,
-      ref: 0,
-      sab: 3,
-      desc: "Seul face au temps qui file, encerclé par ceux qui veulent vous voir échouer."
-    }
+    descriptionCourte:
+      "Lancez et faites tomber toutes les cibles. La distance augmente à chaque palier.",
+    physique: { normal: 1, hardcore: 1 },
+    adresse: { normal: 5, hardcore: 5 },
+    reflexion: { normal: 0, hardcore: 0 },
+    sabotage: { normal: 0, hardcore: 3 },
+    hasHardcore: true,
   },
   {
     id: "course-eau",
-    nom: "La Course de l’Eau",
-    categorie: "Physique & Adresse",
+    titre: "La Course de l'Eau",
     duree: "10 - 15 min",
-    normal: {
-      phy: 4, adr: 2, ref: 2, sab: 0,
-      desc: "Courez, remplissez, recommencez jusqu’à atteindre le niveau, puis terminez par un lancer de précision."
-    },
-    hardcore: {
-      phy: 5, adr: 4, ref: 3, sab: 5,
-      desc: "Pas de récipient, uniquement avec vos mains. Et faites tomber les cibles ennemies pour éliminer les adversaires."
-    }
+    descriptionCourte:
+      "Courez, remplissez, recommencez jusqu’à atteindre le niveau, puis terminez par un lancer de précision.",
+    physique: { normal: 4, hardcore: 5 },
+    adresse: { normal: 2, hardcore: 4 },
+    reflexion: { normal: 2, hardcore: 3 },
+    sabotage: { normal: 0, hardcore: 5 },
+    hasHardcore: true,
   },
   {
     id: "mer-brasiers",
-    nom: "La Mer des Brasiers",
-    categorie: "Physique & Réflexion",
+    titre: "La Mer des Brasiers",
     duree: "5 min par équipe",
-    normal: {
-      phy: 5, adr: 1, ref: 3, sab: 0,
-      desc: "Bataille navale XXL : déplacez des poids sur une grille géante pour couler le navire ennemi."
-    },
-    hardcore: null
+    descriptionCourte:
+      "Bataille navale XXL : déplacez des poids sur une grille géante pour couler le navire ennemi.",
+    physique: { normal: 5, hardcore: 5 },
+    adresse: { normal: 1, hardcore: 0 },
+    reflexion: { normal: 3, hardcore: 3 },
+    sabotage: { normal: 0, hardcore: 0 },
+    hasHardcore: false,
   },
   {
     id: "cercle-codes",
-    nom: "Le Cercle des Codes",
-    categorie: "Réflexion",
+    titre: "Le Cercle des Codes",
     duree: "15 - 20 min",
-    normal: { phy: 0, adr: 0, ref: 5, sab: 0, desc: "Déjouez les pièges et craquez le code avant les autres !" },
-    hardcore: null
+    descriptionCourte:
+      "Déjouez les pièges et craquez le code avant les autres.",
+    physique: { normal: 0, hardcore: 0 },
+    adresse: { normal: 0, hardcore: 0 },
+    reflexion: { normal: 5, hardcore: 2 },
+    sabotage: { normal: 0, hardcore: 3 },
+    hasHardcore: true,
   },
-  {
-    id: "secret-anciens",
-    nom: "Le Secret des Anciens",
-    categorie: "Réflexion",
-    duree: "15 min",
-    normal: { phy: 0, adr: 0, ref: 5, sab: 0, desc: "Soyez les plus rapides à résoudre les 3 énigmes." },
-    hardcore: null
-  },
-  {
-    id: "cryptogramme-final",
-    nom: "Le Cryptogramme Final",
-    categorie: "Réflexion & Stratégie",
-    duree: "10 - 20 min",
-    normal: { phy: 0, adr: 1, ref: 5, sab: 0, desc: "Séparés, vous devrez vous synchroniser pour reproduire le cryptogramme." },
-    hardcore: null
-  },
-  {
-    id: "traversee-cibles",
-    nom: "La Traversée des Cibles",
-    categorie: "Adresse",
-    duree: "10 - 15 min",
-    normal: { phy: 2, adr: 5, ref: 0, sab: 0, desc: "Des cibles variées, des lancers en tout genre. Tout doit tomber !" },
-    hardcore: { phy: 2, adr: 5, ref: 2, sab: 3, desc: "Terminez par les cibles des adversaires pour les éliminer de la course." }
-  },
-  {
-    id: "souffle-serpent",
-    nom: "Le Souffle du Serpent",
-    categorie: "Adresse",
-    duree: "20 - 30 min",
-    normal: { phy: 2, adr: 5, ref: 0, sab: 0, desc: "Tir à l’arc : cumulez les points jusqu’au seuil pour ouvrir les portes de la victoire !" },
-    hardcore: { phy: 2, adr: 5, ref: 2, sab: 5, desc: "Vague après vague, les meilleurs dépouillent les autres de leurs flèches." }
-  },
-  {
-    id: "nid-scorpion",
-    nom: "Le Nid du Scorpion",
-    categorie: "Adresse",
-    duree: "20 - 30 min",
-    normal: { phy: 1, adr: 5, ref: 0, sab: 0, desc: "Cornhole en simultané : foncez vers le score avant les autres !" },
-    hardcore: { phy: 1, adr: 5, ref: 4, sab: 4, desc: "Grimper au score… ou saboter celui des autres ?" }
-  },
-  {
-    id: "relais-reliques",
-    nom: "Le Relais des Reliques",
-    categorie: "Physique",
-    duree: "5 min par équipe",
-    normal: { phy: 5, adr: 2, ref: 1, sab: 0, desc: "Portez les charges à l'endroit prévu. Préparez-vous à souffrir." },
-    hardcore: { phy: 5, adr: 4, ref: 1, sab: 0, desc: "Au choix : être attachés ensemble ou utiliser la planche instable." }
-  },
-  {
-    id: "souleve-pack",
-    nom: "Le Soulevé de Pack",
-    categorie: "Physique",
-    duree: "5 min",
-    normal: { phy: 5, adr: 0, ref: 0, sab: 3, desc: "Force et résistance : gardez les bras tendus, chargés de poids, jusqu’à l’abandon des rivaux." },
-    hardcore: { phy: 5, adr: 0, ref: 0, sab: 3, desc: "Un seul joueur se sacrifie aux charges. Les autres gênent les adversaires." }
-  },
-  {
-    id: "traque-dunes",
-    nom: "La Traque des Dunes",
-    categorie: "Physique & Adresse",
-    duree: "5 min par équipe",
-    normal: { phy: 4, adr: 4, ref: 2, sab: 2, desc: "Biathlon revisité : courez, visez, abattez tout tant qu’il reste une cible debout." },
-    hardcore: { phy: 3, adr: 4, ref: 3, sab: 2, desc: "Chasse corsée et pénalités à déclencher au bon moment." }
-  },
-  {
-    id: "labyrinthe-tourments",
-    nom: "Le Labyrinthe des Tourments",
-    categorie: "Physique & Adresse",
-    duree: "10 - 15 min",
-    normal: { phy: 3, adr: 4, ref: 0, sab: 2, desc: "Dénichez le palet puis placez-le sur la planche !" },
-    hardcore: { phy: 3, adr: 4, ref: 3, sab: 2, desc: "Une fois posé, l’enquête s’ouvre : à vous de la résoudre." }
-  },
-  {
-    id: "pauvres-fous",
-    nom: "Fuyez ! Pauvres Fous !",
-    categorie: "Réflexion & Stratégie",
-    duree: "20 - 30 min",
-    normal: { phy: 1, adr: 1, ref: 5, sab: 0, desc: "Votre compagnon est prisonnier. Explorez, déjouez et trouvez la clé." },
-    hardcore: null
-  },
-  {
-    id: "equations-feu",
-    nom: "Les Equations du Feu",
-    categorie: "Réflexion & Adresse",
-    duree: "15 - 20 min",
-    normal: { phy: 2, adr: 4, ref: 5, sab: 0, desc: "1 équation 1 cible. Et on recommence jusqu’à la fin !" },
-    hardcore: null
-  }
 ];
 
-/* =======================
-   Styles (Thème 3: Bronze/Sable/Bordeaux)
-======================= */
-const styles = `
-@import url('https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;500&display=swap');
-:root{
-  --bronze:#7F5A2F; --sand:#E6D4B8; --bordeaux:#A6273A; --granite:#444;
-  --bg:#F5F2EC; --line:#E6E0D8; --card:#fff; --hc-bg:#FFE5E8; --hc-border:#F5B6BF;
-}
-*{box-sizing:border-box}
-html,body,#root{height:100%}
-body{margin:0;background:var(--bg);color:#111;font-family:"League Spartan",system-ui,Segoe UI,Roboto,Arial}
-a{color:inherit}
-.app{min-height:100%;display:flex;flex-direction:column}
-.container{max-width:1420px;margin:0 auto;padding:18px}
-.header{padding:56px 18px;text-align:center;background:linear-gradient(180deg,#F2E8D9,#FFFFFF)}
-.h1{margin:0 0 8px 0;font-size:42px;color:var(--bronze);font-weight:400}
-.sub{margin:0;color:#5b5b5b;font-size:18px}
-.btn{cursor:pointer;border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:#fff;font-weight:400;font-size:14px}
-.btn.primary{background:var(--bronze);color:#fff;border-color:var(--bronze)} .btn.primary:hover{opacity:.92}
-.btn.sm{padding:6px 10px;font-size:13px}
-.toolbar{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
-.input{padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px;background:#fff}
-.grid4{display:grid;grid-template-columns:repeat(4,minmax(280px,1fr));gap:18px}
-@media(max-width:1240px){.grid4{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:900px){.grid4{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:580px){.grid4{grid-template-columns:1fr}}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.05);display:flex;flex-direction:column}
-.card-sel{outline:2px solid var(--sand)}
-.card-body{display:flex;flex-direction:column;padding:12px;gap:10px;flex:1}
-.card-footer{margin-top:auto;display:flex;gap:8px;justify-content:space-between}
-.meta{color:#6b6b6b;font-size:13px}
-.imgwrap{position:relative;width:100%;aspect-ratio:16/9;background:#efe7d7}
-.imgwrap img{width:100%;height:100%;object-fit:cover}
-.imgtitle{position:absolute;left:0;right:0;bottom:0;background:rgba(127,90,47,.92);color:#fff;padding:10px 12px;font-size:15px}
-.statsBlock{display:flex;flex-direction:column;gap:6px;margin-top:6px}
-.statRow{display:flex;justify-content:space-between;align-items:center;font-size:16px;color:#222}
-.stars{font-size:24px;letter-spacing:2px;line-height:1}
-.label{opacity:.85}
-.detailWrap{display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:start}
-@media(max-width:980px){.detailWrap{grid-template-columns:1fr}}
-.panel{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff}
-.panel.hc{background:var(--hc-bg);border-color:var(--hc-border)}
-.badges{display:flex;gap:8px;flex-wrap:wrap}
-.pill{padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:13px;cursor:pointer}
-.pill.active{background:var(--bordeaux);color:#fff;border-color:var(--bordeaux)}
-.footerbar{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;display:flex;gap:10px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 10px;box-shadow:0 6px 20px rgba(0,0,0,.08)}
-.footerbar button{background:#fff;border:0;border-radius:999px;padding:8px 12px;cursor:pointer}
-.footerbar button:hover{background:#f7f4ef}
-.dropRow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
-.drop{min-height:112px;border:2px dashed var(--line);border-radius:16px;padding:10px;background:#fff;display:flex;flex-direction:column;gap:8px}
-.drop h3{margin:0 0 4px 0;font-size:18px;font-weight:400;color:var(--bronze)}
-.drop .hint{font-size:12px;color:#7a7a7a}
-.drop.incontournable{background:#f1f8ff}
-.drop.chaud{background:#fff3ef}
-.drop.avoir{background:#fffaf1}
-.drop.non{background:#fff1f3}
-.icon{font-size:22px;margin-right:6px}
-.poolGrid{display:grid;grid-template-columns:repeat(4,minmax(280px,1fr));gap:18px}
-@media(max-width:1240px){.poolGrid{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:900px){.poolGrid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:580px){.poolGrid{grid-template-columns:1fr}}
-.dragCard{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 2px 6px rgba(0,0,0,.05);overflow:hidden}
-.dragCard .body{padding:10px 12px}
-`;
+/** ===========================
+ *  Composant Carte Epreuve
+ *  =========================== */
 
-/* =======================
-   Helpers UI
-======================= */
-const Stars: React.FC<{ n: number }> = ({ n }) => (
-  <span className="stars">{"★★★★★".slice(0, n)}{"☆☆☆☆☆".slice(n)}</span>
-);
-const StatLine: React.FC<{ label: string; value: number }> = ({ label, value }) => (
-  <div className="statRow">
-    <span className="label">{label}</span>
-    <Stars n={value} />
-  </div>
-);
-const getImg = (ev: Epreuve) =>
-  ev.imageUrl ||
-  `https://placehold.co/1200x675/e8dcc7/7f5a2f?text=${encodeURIComponent(ev.nom)}`;
-
-/* =======================
-   Drag & Drop simple
-======================= */
-function useDnD(initial: Item[]) {
-  const [pool, setPool] = useState<Item[]>(initial);
-  const [buckets, setBuckets] = useState<Record<BucketId, Item[]>>({
-    incontournable: [],
-    chaud: [],
-    avoir: [],
-    non: []
-  });
-
-  const removeFrom = (from: From, key: string) => {
-    if (from === "pool") setPool(p => p.filter(i => i.key !== key));
-    else setBuckets(p => ({ ...p, [from]: p[from].filter(i => i.key !== key) }));
-  };
-
-  const onDragStart = (e: React.DragEvent, item: Item, from: From) => {
-    e.dataTransfer.setData("text/plain", JSON.stringify({ item, from }));
-  };
-
-  const onDropToBucket = (bucketId: BucketId, e: React.DragEvent) => {
-    e.preventDefault();
-    const { item, from } = JSON.parse(e.dataTransfer.getData("text/plain"));
-    removeFrom(from, item.key);
-    setBuckets(p => ({ ...p, [bucketId]: [...p[bucketId], item] }));
-  };
-
-  const onDropToPool = (e: React.DragEvent) => {
-    e.preventDefault();
-    const { item, from } = JSON.parse(e.dataTransfer.getData("text/plain"));
-    removeFrom(from, item.key);
-    setPool(p => [...p, item]);
-  };
-
-  const allow = (e: React.DragEvent) => e.preventDefault();
-
-  return { pool, buckets, onDragStart, onDropToBucket, onDropToPool, allow, setPool, setBuckets };
-}
-
-/* =======================
-   Petits composants
-======================= */
-const CardImage: React.FC<{ title: string; url?: string }> = ({ title, url }) => (
-  <div className="imgwrap">
-    <img src={url || getImg({} as any)} alt="" />
-    <div className="imgtitle">{title}</div>
-  </div>
-);
-
-const EventMini: React.FC<{ ev: Epreuve; onClick: () => void }> = ({ ev, onClick }) => (
-  <div onClick={onClick} style={{ cursor: "pointer" }}>
-    <div className="imgwrap">
-      <img src={getImg(ev)} alt="" />
-      <div className="imgtitle">{ev.nom}</div>
-    </div>
-    <div className="meta">{ev.categorie} • ⏱ {ev.duree}</div>
-    <div className="statsBlock">
-      <StatLine label="Physique" value={ev.normal.phy} />
-      <StatLine label="Adresse" value={ev.normal.adr} />
-      <StatLine label="Réflexion" value={ev.normal.ref} />
-      <StatLine label="Sabotage" value={ev.normal.sab} />
-    </div>
-  </div>
-);
-
-/* =======================
-   Screens
-======================= */
-const ScreenHome: React.FC<{ onOrganizer: () => void; onJoin: (code: string) => void }> = ({ onOrganizer, onJoin }) => {
-  const [code, setCode] = useState("");
+function EpreuveCard({
+  epreuve,
+  mode,
+  imageUrl,
+}: {
+  epreuve: Epreuve;
+  mode: Mode;
+  imageUrl?: string;
+}) {
   return (
-    <div className="header">
-      <h1 className="h1">Olympiades — Votez pour vos épreuves</h1>
-      <p className="sub">L’animateur vous invite à choisir vos défis préférés.</p>
-      <div className="toolbar">
-        <input className="input" placeholder="Code (ex: SPARTIATE-123)"
-               value={code} onChange={e => setCode(e.target.value)} />
-        <button className="btn primary" onClick={() => onJoin(code || prompt("Code de session ?") || "")}>
-          Rejoindre une session
-        </button>
-        <button className="btn" onClick={onOrganizer}>Créer une session</button>
+    <div className="rounded-xl border bg-white/70 p-3 shadow-sm">
+      {/* Image + Titre/Durée */}
+      <div className="relative mb-3 overflow-hidden rounded-lg">
+        <div
+          className="h-36 w-full bg-cover bg-center"
+          style={{
+            backgroundImage: `url(${imageUrl || "/epreuve-placeholder.jpg"})`,
+          }}
+          aria-hidden="true"
+        />
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-3 pb-2 pt-8">
+          <div className="flex items-baseline justify-between text-white">
+            <h3 className="text-lg md:text-xl leading-tight tracking-wide">
+              {epreuve.titre}{" "}
+              <span className="text-sm opacity-80 align-middle">
+                ({mode})
+              </span>
+            </h3>
+            <div className="text-xs md:text-sm opacity-90 whitespace-nowrap">
+              {epreuve.duree}
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Description */}
+      <p className="mt-1 text-[15px] leading-relaxed tracking-wide text-slate-700">
+        {epreuve.descriptionCourte}
+      </p>
+
+      {/* Caractéristiques */}
+      <ul className="mt-3 space-y-1.5 text-[15px] leading-relaxed tracking-wide text-slate-800">
+        <li className="flex items-center justify-between">
+          <span>Physique</span>
+          <StarRating value={epreuve.physique[mode]} />
+        </li>
+        <li className="flex items-center justify-between">
+          <span>Adresse</span>
+          <StarRating value={epreuve.adresse[mode]} />
+        </li>
+        <li className="flex items-center justify-between">
+          <span>Réflexion</span>
+          <StarRating value={epreuve.reflexion[mode]} />
+        </li>
+        <li className="flex items-center justify-between">
+          <span>Sabotage</span>
+          <StarRating value={epreuve.sabotage[mode]} />
+        </li>
+      </ul>
     </div>
   );
-};
-
-const ScreenCreate: React.FC<{
-  selected: Set<string>;
-  toggle: (id: string) => void;
-  onStart: (code: string) => void;
-  onDetail: (ev: Epreuve) => void;
-}> = ({ selected, toggle, onStart, onDetail }) => {
-  const selectedArr = DATA.filter(e => selected.has(e.id));
-  const [creating, setCreating] = useState(false);
-
-  const createSession = async () => {
-    setCreating(true);
-    const r = await fetch(`${API}/session`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ selectedIds: Array.from(selected) })
-    }).then(r => r.json()).catch(() => null);
-    setCreating(false);
-    if (r?.ok) {
-      alert(`Session créée: ${r.code}\nLien: ${location.origin}${r.url}`);
-      onStart(r.code);
-    } else {
-      alert("Erreur création session");
-    }
-  };
-
-  return (
-    <div className="container">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ color: "var(--bronze)", fontSize: 28 }}>Sélection des épreuves</div>
-        <button className="btn primary" onClick={createSession} disabled={!selected.size || creating}>
-          {creating ? "Création..." : `Créer la session (${selected.size})`}
-        </button>
-      </div>
-      <p className="sub">Choisis ce que l’animateur proposera au vote.</p>
-
-      <div className="grid4" style={{ marginTop: 12 }}>
-        {DATA.map(ev => (
-          <div key={ev.id} className={`card ${selected.has(ev.id) ? "card-sel" : ""}`}>
-            <div onClick={() => onDetail(ev)} style={{ cursor: "pointer" }}>
-              <div className="imgwrap">
-                <img src={getImg(ev)} alt="" />
-                <div className="imgtitle">{ev.nom}</div>
-              </div>
-            </div>
-            <div className="card-body">
-              <div className="meta">{ev.categorie} • ⏱ {ev.duree}</div>
-              <div className="statsBlock">
-                <StatLine label="Physique" value={ev.normal.phy} />
-                <StatLine label="Adresse" value={ev.normal.adr} />
-                <StatLine label="Réflexion" value={ev.normal.ref} />
-                <StatLine label="Sabotage" value={ev.normal.sab} />
-              </div>
-              <p style={{ fontSize: 15 }}>{ev.normal.desc}</p>
-              <div className="card-footer">
-                <button className="btn sm" onClick={() => toggle(ev.id)}>
-                  {selected.has(ev.id) ? "Retirer" : "Ajouter"}
-                </button>
-                <button className="btn sm" onClick={() => onDetail(ev)}>Version Hardcore</button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {selectedArr.length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <div className="sub">Prévisualisation ({selectedArr.length})</div>
-          <div className="grid4" style={{ marginTop: 8 }}>
-            {selectedArr.map(ev => <EventMini key={ev.id} ev={ev} onClick={() => onDetail(ev)} />)}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const ScreenDetail: React.FC<{ ev: Epreuve; onBack: () => void }> = ({ ev, onBack }) => {
-  const [mode, setMode] = useState<"normal" | "hardcore">("normal");
-  const hasHC = !!ev.hardcore;
-  const n = ev.normal;
-  const h = ev.hardcore || undefined;
-
-  return (
-    <div className="container">
-      <button className="btn sm" onClick={onBack}>← Retour</button>
-      <div className="detailWrap" style={{ marginTop: 12 }}>
-        <div>
-          <div className="imgwrap">
-            <img src={getImg(ev)} alt="" />
-            <div className="imgtitle">{ev.nom}</div>
-          </div>
-        </div>
-        <div>
-          <div className="panel" style={{ marginBottom: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ color: "var(--bronze)", fontSize: 24 }}>{ev.nom}</div>
-                <div className="sub">{ev.categorie} • ⏱ {ev.duree}</div>
-              </div>
-              <div className="badges">
-                <button className={`pill ${mode === "normal" ? "active" : ""}`} onClick={() => setMode("normal")}>Normal</button>
-                <button className={`pill ${mode === "hardcore" ? "active" : ""}`} onClick={() => setMode("hardcore")} disabled={!hasHC}>
-                  {hasHC ? "Hardcore" : "Hardcore (indispo)"}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="panel">
-            <div style={{ opacity: .8 }}>Description (Normal)</div>
-            <p style={{ marginTop: 6, fontSize: 16 }}>{n.desc}</p>
-            <div className="statsBlock">
-              <StatLine label="Physique" value={n.phy} />
-              <StatLine label="Adresse" value={n.adr} />
-              <StatLine label="Réflexion" value={n.ref} />
-              <StatLine label="Sabotage" value={n.sab} />
-            </div>
-          </div>
-
-          {mode === "hardcore" && hasHC && h && (
-            <div className="panel hc" style={{ marginTop: 12 }}>
-              <div style={{ opacity: .8 }}>+ Variante Hardcore</div>
-              <p style={{ marginTop: 6, fontSize: 16 }}>{h.desc}</p>
-              <div className="statsBlock">
-                <StatLine label="Physique" value={h.phy} />
-                <StatLine label="Adresse" value={h.adr} />
-                <StatLine label="Réflexion" value={h.ref} />
-                <StatLine label="Sabotage" value={h.sab} />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const BUCKETS = [
-  { id: "incontournable", title: "Incontournable !", icon: "🏆" },
-  { id: "chaud", title: "Je suis chaud", icon: "🔥" },
-  { id: "avoir", title: "A voir", icon: "👁️" },
-  { id: "non", title: "Pas pour moi", icon: "🚫" }
-] as const;
-
-function toPoolItems(selected: Epreuve[]) {
-  const arr: Item[] = [];
-  selected.forEach(ev => {
-    arr.push({ key: `${ev.id}-normal`, mode: "normal", ev });
-    if (ev.hardcore) arr.push({ key: `${ev.id}-hardcore`, mode: "hardcore", ev });
-  });
-  return arr;
 }
 
-const DraggableEventCard: React.FC<{ item: Item; onDragStart: (e: React.DragEvent, it: Item, from: From) => void }> =
-  ({ item, onDragStart }) => {
-    const stats = item.mode === "normal" ? item.ev.normal : item.ev.hardcore!;
-    const fullDesc = item.mode === "normal" ? stats.desc : `${item.ev.normal.desc} — Variante Hardcore : ${stats.desc}`;
-    return (
-      <div className="dragCard" draggable onDragStart={(e) => onDragStart(e, item, "pool")}>
-        <div className="imgwrap">
-          <img src={getImg(item.ev)} alt="" />
-          <div className="imgtitle">{item.ev.nom} {item.mode === "normal" ? "(Normal)" : "(Hardcore)"}</div>
-        </div>
-        <div className="body">
-          <div className="meta">{item.ev.categorie} • ⏱ {item.ev.duree}</div>
-          <div className="statsBlock">
-            <StatLine label="Physique" value={stats.phy} />
-            <StatLine label="Adresse" value={stats.adr} />
-            <StatLine label="Réflexion" value={stats.ref} />
-            <StatLine label="Sabotage" value={stats.sab} />
-          </div>
-          <p style={{ marginTop: 8, fontSize: 15 }}>{fullDesc}</p>
-        </div>
+/** ===========================
+ *  Pages: Accueil / Créer / Join
+ *  =========================== */
+
+function Accueil() {
+  return (
+    <section className="relative min-h-[60vh] w-full overflow-hidden rounded-xl">
+      {/* Image de fond réservée (à remplacer plus tard) */}
+      <div
+        className="absolute inset-0 bg-cover bg-center opacity-25"
+        style={{ backgroundImage: "url(/hero-placeholder.jpg)" }}
+        aria-hidden="true"
+      />
+      <div
+        className="absolute inset-0 bg-gradient-to-b from-white/40 to-white/85"
+        aria-hidden="true"
+      />
+      <div className="relative z-10 mx-auto max-w-4xl px-4 py-14 text-center">
+        <h1 className="text-3xl md:text-5xl leading-tight tracking-wide">
+          Olympiades — Votez pour vos épreuves
+        </h1>
+        <p className="mt-4 text-lg md:text-xl leading-relaxed tracking-wide opacity-90">
+          Choisissez vos épreuves préférées, classez-les, et mettez le feu à la
+          compétition. L’animateur composera le programme parfait. Prêts à
+          transpirer élégamment?
+        </p>
       </div>
-    );
-  };
+    </section>
+  );
+}
 
-const ScreenVote: React.FC<{
-  sessionCode: string | null;
-  selected: Epreuve[];
-  onNeedJoin: () => void;
-}> = ({ sessionCode, selected, onNeedJoin }) => {
-  const baseItems = useMemo(() => toPoolItems(selected), [selected]);
-  const { pool, buckets, onDragStart, onDropToBucket, onDropToPool, allow } = useDnD(baseItems);
-  const [voter, setVoter] = useState(localStorage.getItem("voter") || "");
+function Creer() {
+  const [selected, setSelected] = React.useState<Record<string, boolean>>({});
+  const [creating, setCreating] = React.useState(false);
+  const [code, setCode] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
 
-  useEffect(() => {
-    const m = location.pathname.match(/\/join\/(.+)$/);
-    if (m && !sessionCode) onNeedJoin();
-  }, []);
+  const selectedIds = React.useMemo(
+    () =>
+      Object.entries(selected)
+        .filter(([, v]) => v)
+        .map(([k]) => k),
+    [selected]
+  );
 
-  const submit = async () => {
-    if (!sessionCode) { alert("Tu dois rejoindre une session d'abord."); return; }
-    if (!voter.trim()) { alert("Entre un pseudo/prénom."); return; }
-    localStorage.setItem("voter", voter.trim());
-    const payload = {
-      voter: voter.trim(),
-      buckets: {
-        incontournable: buckets.incontournable.map(i => i.key),
-        chaud: buckets.chaud.map(i => i.key),
-        avoir: buckets.avoir.map(i => i.key),
-        non: buckets.non.map(i => i.key)
+  async function handleCreate() {
+    try {
+      setError(null);
+      setCreating(true);
+      const res = await fetch("/api/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ selectedIds, theme: "theme-3" }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || "Erreur inconnue");
       }
-    };
-    const r = await fetch(`${API}/session/${sessionCode}/vote`, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
-    }).then(r => r.json()).catch(() => null);
-    if (r?.ok) alert("Vote enregistré. Merci !");
-    else alert("Erreur enregistrement vote");
-  };
+      setCode(data.code);
+    } catch (e: any) {
+      setError(e?.message || String(e));
+    } finally {
+      setCreating(false);
+    }
+  }
 
   return (
-    <div className="container">
-      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
-        <input className="input" placeholder="Ton pseudo" value={voter} onChange={e => setVoter(e.target.value)} />
-        <button className="btn primary" onClick={submit}>Envoyer mes votes</button>
-        {sessionCode && (
-          <>
-            <a className="btn" href={`${API}/session/${sessionCode}/results`} target="_blank">Résultats (JSON)</a>
-            <a className="btn" href={`${API}/session/${sessionCode}/export.csv`} target="_blank" rel="noreferrer">Export CSV</a>
-          </>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-2xl tracking-wide">Créer une session</h2>
+        <div className="text-sm opacity-80">
+          {selectedIds.length} épreuve(s) sélectionnée(s)
+        </div>
+      </div>
+
+      {/* Grille d’épreuves */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {EPREUVES.map((e) => {
+          const checked = !!selected[e.id];
+          return (
+            <label key={e.id} className="cursor-pointer">
+              <div
+                className={`rounded-xl border p-2 shadow-sm transition ${
+                  checked ? "ring-2 ring-amber-500" : "hover:shadow"
+                }`}
+              >
+                <EpreuveCard epreuve={e} mode="normal" />
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-sm tracking-wide">Ajouter</span>
+                  <input
+                    type="checkbox"
+                    className="h-5 w-5"
+                    checked={checked}
+                    onChange={(ev) =>
+                      setSelected((s) => ({ ...s, [e.id]: ev.target.checked }))
+                    }
+                  />
+                </div>
+              </div>
+            </label>
+          );
+        })}
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-3">
+        <button
+          className="rounded-lg border bg-black px-5 py-2 text-white disabled:opacity-50"
+          onClick={handleCreate}
+          disabled={creating || selectedIds.length === 0}
+        >
+          {creating ? "Création..." : "Créer la session"}
+        </button>
+
+        {code && (
+          <div className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-base tracking-wide">
+            <span>Code de session :</span>
+            <span className="font-mono tabular-nums">{code}</span>
+          </div>
         )}
       </div>
 
-      <div className="dropRow">
-        {BUCKETS.map(b => (
-          <div key={b.id} className={`drop ${b.id}`} onDrop={(e) => onDropToBucket(b.id, e)} onDragOver={allow}>
-            <h3><span className="icon">{b.icon}</span>{b.title}</h3>
-            <div className="hint">Glissez vos choix ici</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
-              {buckets[b.id].map(it => (
-                <span key={it.key} className="pill" draggable
-                      onDragStart={(e) => onDragStart(e, it, b.id as BucketId)}>
-                  {it.ev.nom} {it.mode === "normal" ? "(N)" : "(H)"}
-                </span>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="drop" style={{ marginBottom: 16 }} onDrop={onDropToPool} onDragOver={allow}>
-        <h3>⬇️ Remettre dans les cartes ci-dessous</h3>
-      </div>
-
-      <div className="poolGrid">
-        {pool.map(item => <DraggableEventCard key={item.key} item={item} onDragStart={onDragStart} />)}
-      </div>
+      {error && (
+        <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
     </div>
   );
-};
+}
 
-/* =======================
-   App
-======================= */
-export default function App() {
-  const [screen, setScreen] = useState<"home" | "create" | "detail" | "vote">("home");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [detail, setDetail] = useState<Epreuve | null>(null);
-  const [sessionCode, setSessionCode] = useState<string | null>(null);
+function Join() {
+  // on lit /join/:code depuis l’URL
+  const [initialCode] = React.useState(() => {
+    const path = typeof window !== "undefined" ? window.location.pathname : "/";
+    const m = path.match(/\/join\/([\w-]+)/i);
+    return m ? m[1] : "";
+  });
 
-  const fetchJoinFromURL = async () => {
-    const m = location.pathname.match(/\/join\/(.+)$/);
-    const code = m?.[1];
-    if (!code) return;
-    const r = await fetch(`${API}/session/${code}`).then(r => r.json()).catch(() => null);
-    if (r?.ok) {
-      setSelectedIds(new Set(r.session.selectedIds || []));
-      setSessionCode(code);
-      setScreen("vote");
-    } else {
-      alert("Session introuvable");
+  const [code, setCode] = React.useState(initialCode);
+  const [voter, setVoter] = React.useState("");
+  const [session, setSession] = React.useState<any | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [sent, setSent] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  // Attribution de “bucket” par épreuve
+  const [choices, setChoices] = React.useState<Record<string, string>>({}); // id -> "incontournable"|"chaud"|"avoir"|"non"|"" (non choisi)
+
+  React.useEffect(() => {
+    async function load() {
+      if (!code) return;
+      try {
+        setError(null);
+        setLoading(true);
+        const res = await fetch(`/api/session/${encodeURIComponent(code)}`);
+        const data = await res.json();
+        if (!res.ok || !data?.ok) {
+          throw new Error(data?.error || "Session introuvable");
+        }
+        setSession(data.session);
+      } catch (e: any) {
+        setError(e?.message || String(e));
+      } finally {
+        setLoading(false);
+      }
     }
-  };
+    load();
+  }, [code]);
 
-  const selected = useMemo(() => DATA.filter(e => selectedIds.has(e.id)), [selectedIds]);
-  const toggle = (id: string) =>
-    setSelectedIds(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  function submitVote() {
+    if (!code || !voter.trim()) {
+      setError("Renseigne un pseudo.");
+      return;
+    }
+    // on transforme choices en buckets
+    const buckets = {
+      incontournable: [] as string[],
+      chaud: [] as string[],
+      avoir: [] as string[],
+      non: [] as string[],
+    };
+    Object.entries(choices).forEach(([id, b]) => {
+      if (!b) return;
+      // on vote sur le mode normal par défaut
+      const key = `${id}-normal`;
+      if (b === "incontournable") buckets.incontournable.push(key);
+      if (b === "chaud") buckets.chaud.push(key);
+      if (b === "avoir") buckets.avoir.push(key);
+      if (b === "non") buckets.non.push(key);
+    });
+
+    fetch(`/api/session/${encodeURIComponent(code)}/vote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ voter: voter.trim(), buckets }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d?.ok) throw new Error(d?.error || "Erreur vote");
+        setSent(true);
+      })
+      .catch((e) => setError(e?.message || String(e)));
+  }
 
   return (
-    <div className="app">
-      <style>{styles}</style>
-
-      {screen === "home" && (
-        <ScreenHome
-          onOrganizer={() => setScreen("create")}
-          onJoin={async (code) => {
-            const c = code || prompt("Code de session ?") || "";
-            if (!c) return;
-            const r = await fetch(`${API}/session/${c}`).then(r => r.json()).catch(() => null);
-            if (r?.ok) {
-              setSelectedIds(new Set(r.session.selectedIds || []));
-              setSessionCode(c);
-              setScreen("vote");
-            } else alert("Session introuvable");
-          }}
-        />
-      )}
-
-      {screen === "create" && (
-        <div>
-          <ScreenCreate
-            selected={selectedIds}
-            toggle={toggle}
-            onStart={(code) => { setSessionCode(code); setScreen("vote"); }}
-            onDetail={(ev) => { setDetail(ev); setScreen("detail"); }}
-          />
-          <div className="footerbar">
-            <button onClick={() => setScreen("home")}>Accueil</button>
-            <button onClick={() => setScreen("create")}>Créer</button>
-            <button onClick={() => setScreen("vote")}>Vote</button>
-          </div>
+    <div className="space-y-6">
+      {/* Bandeau Code */}
+      {code && (
+        <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm">
+          <span>Session</span>
+          <span className="font-mono tabular-nums">{code}</span>
         </div>
       )}
 
-      {screen === "detail" && detail && (
-        <div>
-          <ScreenDetail ev={detail} onBack={() => setScreen("create")} />
-          <div className="footerbar">
-            <button onClick={() => setScreen("home")}>Accueil</button>
-            <button onClick={() => setScreen("create")}>Créer</button>
-            <button onClick={() => setScreen("vote")}>Vote</button>
-          </div>
+      {/* Form d’accès si l’URL n’avait pas le code */}
+      {!session && (
+        <div className="flex items-end gap-2">
+          <label className="block">
+            <span className="block text-sm">Code</span>
+            <input
+              className="mt-1 w-40 rounded border px-3 py-2"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="123456"
+            />
+          </label>
+          <button
+            className="rounded-lg border bg-black px-4 py-2 text-white"
+            onClick={() => setCode(code.trim())}
+          >
+            Charger
+          </button>
         </div>
       )}
 
-      {screen === "vote" && (
-        <div>
-          <ScreenVote
-            sessionCode={sessionCode}
-            selected={selected.length ? selected : DATA.slice(0, 8)}
-            onNeedJoin={fetchJoinFromURL}
-          />
-          <div className="footerbar">
-            <button onClick={() => setScreen("home")}>Accueil</button>
-            <button onClick={() => setScreen("create")}>Créer</button>
-            <button onClick={() => setScreen("vote")}>Vote</button>
-          </div>
+      {/* Chargement / erreurs */}
+      {loading && <div>Chargement…</div>}
+      {error && (
+        <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+          {error}
         </div>
       )}
+
+      {/* Voter */}
+      {session && (
+        <>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="block">
+              <span className="block text-sm">Ton pseudo</span>
+              <input
+                className="mt-1 w-56 rounded border px-3 py-2"
+                value={voter}
+                onChange={(e) => setVoter(e.target.value)}
+                placeholder="Ex: Léa"
+              />
+            </label>
+            <button
+              className="rounded-lg border bg-black px-4 py-2 text-white"
+              onClick={submitVote}
+            >
+              Envoyer mes votes
+            </button>
+            {sent && (
+              <span className="text-sm text-emerald-700">
+                Vote envoyé. Tu peux modifier et renvoyer si besoin.
+              </span>
+            )}
+          </div>
+
+          {/* Liste simple: chaque épreuve → choix de colonne */}
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {EPREUVES.filter((e) =>
+              (session.selectedIds || []).includes(e.id)
+            ).map((e) => {
+              const bucket = choices[e.id] || "";
+              return (
+                <div key={e.id} className="rounded-xl border p-3">
+                  <EpreuveCard epreuve={e} mode="normal" />
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <label className="text-sm">Classement</label>
+                    <select
+                      className="rounded border px-3 py-1.5 text-sm"
+                      value={bucket}
+                      onChange={(ev) =>
+                        setChoices((c) => ({ ...c, [e.id]: ev.target.value }))
+                      }
+                    >
+                      <option value="">— choisir —</option>
+                      <option value="incontournable">Incontournable !</option>
+                      <option value="chaud">Je suis chaud</option>
+                      <option value="avoir">À voir</option>
+                      <option value="non">Pas pour moi</option>
+                    </select>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** ===========================
+ *  App principale
+ *  =========================== */
+
+type Page = "home" | "create" | "join";
+
+export default function App() {
+  const [page, setPage] = React.useState<Page>(() => {
+    const path = typeof window !== "undefined" ? window.location.pathname : "/";
+    if (/^\/join\//i.test(path)) return "join";
+    return "home";
+  });
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-6">
+      {/* Nav simple */}
+      <nav className="mb-6 flex items-center justify-between">
+        <div className="text-xl tracking-wide">Olympiades</div>
+        <div className="flex gap-2">
+          <button
+            className={`rounded-md px-3 py-1.5 ${
+              page === "home" ? "bg-black text-white" : "border"
+            }`}
+            onClick={() => setPage("home")}
+          >
+            Accueil
+          </button>
+          <button
+            className={`rounded-md px-3 py-1.5 ${
+              page === "create" ? "bg-black text-white" : "border"
+            }`}
+            onClick={() => setPage("create")}
+          >
+            Créer
+          </button>
+          <button
+            className={`rounded-md px-3 py-1.5 ${
+              page === "join" ? "bg-black text-white" : "border"
+            }`}
+            onClick={() => setPage("join")}
+          >
+            Vote
+          </button>
+        </div>
+      </nav>
+
+      {/* Pages */}
+      {page === "home" && <Accueil />}
+      {page === "create" && <Creer />}
+      {page === "join" && <Join />}
+
+      {/* Footer mini */}
+      <footer className="mt-10 text-center text-sm opacity-70">
+        Bêta — thème 3, étoiles lisibles, titres ajustés, durée à droite, code
+        visible.
+      </footer>
     </div>
   );
 }
