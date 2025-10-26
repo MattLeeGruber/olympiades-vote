@@ -348,22 +348,29 @@ const ScreenCreate: React.FC<{
   const selectedArr = DATA.filter(e => selected.has(e.id));
   const [creating, setCreating] = useState(false);
 
-  const createSession = async () => {
-    setCreating(true);
-    const r = await fetch(`${API}/session`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ selectedIds: Array.from(selected) })
-    }).then(r => r.json()).catch(() => null);
-    setCreating(false);
-    if (r?.ok) {
-      alert(`Session créée: ${r.code}\nLien: ${location.origin}${r.url}`);
-      onStart(r.code);
-    } else {
-      alert("Erreur création session");
-    }
-  };
+const createSession = async () => {
+  setCreating(true);
+  const r = await fetch(`${API}/session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ selectedIds: Array.from(selected) })
+  }).then(r => r.json()).catch(() => null);
+  setCreating(false);
 
+  if (r?.ok) {
+    // Met dans le badge (si présent)
+    const badge = document.getElementById('session-code-badge');
+    if (badge) {
+      badge.replaceChildren(document.createTextNode(r.code));
+    }
+
+    alert(`Session créée: ${r.code}\nLien: ${location.origin}${r.url}`);
+    onStart(r.code);
+  } else {
+    alert("Erreur création session");
+  }
+};
+   
   return (
     <div className="container">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -372,8 +379,11 @@ const ScreenCreate: React.FC<{
           {creating ? "Création..." : `Créer la session (${selected.size})`}
         </button>
       </div>
-      <p className="sub">Choisis ce que l’animateur proposera au vote.</p>
-
+      <p className="sub">Sélection de l’animateur pour le vote des participants.</p>
+<div className="mt-3 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-base tracking-wide">
+  <span>Code de session :</span>
+  <span id="session-code-badge" className="font-mono tabular-nums"></span>
+</div>
       <div className="grid4" style={{ marginTop: 12 }}>
         {DATA.map(ev => (
           <div key={ev.id} className={`card ${selected.has(ev.id) ? "card-sel" : ""}`}>
