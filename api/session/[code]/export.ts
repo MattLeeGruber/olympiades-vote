@@ -1,5 +1,6 @@
 // api/session/[code]/export.ts
 import { createClient } from "@libsql/client";
+import { CATALOG } from "../../_catalog";
 
 function db() {
   return createClient({
@@ -7,14 +8,16 @@ function db() {
     authToken: process.env.TURSO_AUTH_TOKEN!
   });
 }
-
 async function getKV<T = any>(k: string) {
   const r = await db().execute({ sql: "SELECT value FROM kv WHERE key = ?", args: [k] });
   if (!r.rows.length) return null;
   return JSON.parse(r.rows[0].value as string);
 }
-
-// ... mêmes imports et getKV ...
+function parseKey(key:string){
+  const m = key.match(/^(.*)-(normal|hardcore)$/);
+  if(!m) return { id:key, mode:"normal" as const };
+  return { id:m[1], mode:m[2] as "normal"|"hardcore" };
+}
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "GET") return res.status(405).send("Method Not Allowed");
@@ -25,16 +28,30 @@ export default async function handler(req: any, res: any) {
     const s = await getKV<any>(`session:${code}`);
     if (!s) return res.status(404).send("Session inconnue");
 
-    // ✅ PIN: session PIN OU ADMIN_PIN global
     const expected = String(s.adminPin || "").trim();
     const globalPin = String(process.env.ADMIN_PIN || "").trim();
     const okAdmin = admin && (admin === expected || (globalPin && admin === globalPin));
     if (!okAdmin) return res.status(403).send("Accès refusé");
 
-    const rows = [["voter","bucket","key"]];
+    const rows = [["session","voter","bucket","key","id","mode","name","categorie","duree","at"]];
     for (const v of (s.votes || [])) {
       for (const k of ["incontournable","chaud","avoir","non"] as const) {
-        for (const key of (v.buckets?.[k] || [])) rows.push([v.voter, k, key]);
+        for (const key of (v.buckets?.[k] || [])) {
+          const {id,mode} = parseKey(key);
+          const cat = CATALOG[id];
+          rows.push([
+            s.code,
+            v.voter,
+            k,
+            key,
+            id,
+            mode,
+            cat?.name || id,
+            cat?.categorie || "",
+            cat?.duree || "",
+            v.at || ""
+          ]);
+        }
       }
     }
 
