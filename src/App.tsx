@@ -12,7 +12,7 @@ type ModeStats = { phy: number; adr: number; ref: number; sab: number; desc: str
 type Epreuve = {
   id: string;
   nom: string;
-  categorie: string;
+  categorie: string; // Conservé dans le type, mais on n'affiche plus la catégorie
   duree: string;
   normal: ModeStats;
   hardcore: ModeStats | null;
@@ -181,11 +181,19 @@ const styles = `
 }
 *{box-sizing:border-box}
 html,body,#root{height:100%}
-body{margin:0;background:var(--bg);color:#111;font-family:"League Spartan",system-ui,Segoe UI,Roboto,Arial}
+body{margin:0;background:var(--bg);color:#111;font-family:"League+Spartan",system-ui,Segoe UI,Roboto,Arial}
 a{color:inherit}
 .app{min-height:100%;display:flex;flex-direction:column}
-.container{max-width:1420px;margin:0 auto;padding:18px}
-.header{padding:56px 18px;text-align:center;background:linear-gradient(180deg,#F2E8D9,#FFFFFF)}
+.container{max-width:1420px;margin:0 auto;padding:18px; position:relative;}
+/* HERO d'accueil */
+.hero{position:relative; min-height:60vh; overflow:hidden; border-radius:16px;}
+.hero-bg{position:absolute; inset:0; background-size:cover; background-position:center; opacity:.25;}
+.hero-ov{position:absolute; inset:0; background:linear-gradient(180deg, rgba(255,255,255,.4), rgba(255,255,255,.85));}
+.hero-content{position:relative; z-index:1; max-width:900px; margin:0 auto; padding:56px 18px; text-align:center;}
+.hero h1{margin:0 0 10px 0; font-size:40px; color:var(--bronze); font-weight:400;}
+.hero p{margin:0 auto; max-width:800px; font-size:20px; line-height:1.55; color:#444;}
+@media(min-width:900px){ .hero h1{font-size:56px} .hero p{font-size:22px} }
+
 .h1{margin:0 0 8px 0;font-size:42px;color:var(--bronze);font-weight:400}
 .sub{margin:0;color:#5b5b5b;font-size:18px}
 .btn{cursor:pointer;border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:#fff;font-weight:400;font-size:14px}
@@ -204,15 +212,28 @@ a{color:inherit}
 .meta{color:#6b6b6b;font-size:13px}
 .imgwrap{position:relative;width:100%;aspect-ratio:16/9;background:#efe7d7}
 .imgwrap img{width:100%;height:100%;object-fit:cover}
-.imgtitle{position:absolute;left:0;right:0;bottom:0;background:rgba(127,90,47,.92);color:#fff;padding:10px 12px;font-size:15px}
+/* Bannière titre + durée dans l'image */
+.imgtitle{position:absolute;left:0;right:0;bottom:0;background:rgba(127,90,47,.92);color:#fff;padding:10px 12px;}
+.imgtitle-row{display:flex; align-items:baseline; justify-content:space-between; gap:8px;}
+.imgtitle .t{font-size:16px}
+.imgtitle .mode{font-size:12px; opacity:.85}
+.imgtitle .duree{font-size:13px; opacity:.95; white-space:nowrap}
+
 .statsBlock{display:flex;flex-direction:column;gap:6px;margin-top:6px}
 .statRow{display:flex;justify-content:space-between;align-items:center;font-size:16px;color:#222}
-.stars{font-size:24px;letter-spacing:2px;line-height:1}
+/* Etoiles lisibles */
+.stars{font-size:22px;line-height:1;display:inline-flex;gap:2px;letter-spacing:0}
+.star.filled{color:#d97706}  /* amber-600 */
+.star.empty{color:rgba(100,116,139,.35)} /* slate-500 w/ alpha */
+
 .label{opacity:.85}
+.desc{margin-top:6px; font-size:15px; line-height:1.55; color:#3a3a3a}
+
 .detailWrap{display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:start}
 @media(max-width:980px){.detailWrap{grid-template-columns:1fr}}
 .panel{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff}
 .panel.hc{background:var(--hc-bg);border-color:var(--hc-border)}
+
 .badges{display:flex;gap:8px;flex-wrap:wrap}
 .pill{padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:13px;cursor:pointer}
 .pill.active{background:var(--bordeaux);color:#fff;border-color:var(--bordeaux)}
@@ -234,13 +255,25 @@ a{color:inherit}
 @media(max-width:580px){.poolGrid{grid-template-columns:1fr}}
 .dragCard{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 2px 6px rgba(0,0,0,.05);overflow:hidden}
 .dragCard .body{padding:10px 12px}
+
+/* Badge code session (Vote) */
+.sessionBadge{
+  position:absolute; top:14px; right:18px;
+  background:#fff; border:1px solid var(--line); border-radius:10px;
+  padding:6px 10px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:14px; box-shadow:0 2px 6px rgba(0,0,0,.08)
+}
 `;
 
 /* =======================
    Helpers UI
 ======================= */
 const Stars: React.FC<{ n: number }> = ({ n }) => (
-  <span className="stars">{"★★★★★".slice(0, n)}{"☆☆☆☆☆".slice(n)}</span>
+  <span className="stars">
+    {Array.from({ length: 5 }).map((_, i) => (
+      <span key={i} className={i < n ? "star filled" : "star empty"}>★</span>
+    ))}
+  </span>
 );
 const StatLine: React.FC<{ label: string; value: number }> = ({ label, value }) => (
   <div className="statRow">
@@ -295,20 +328,25 @@ function useDnD(initial: Item[]) {
 /* =======================
    Petits composants
 ======================= */
-const CardImage: React.FC<{ title: string; url?: string }> = ({ title, url }) => (
+const CardImage: React.FC<{ title: string; url?: string; duree?: string; modeTag?: string }> = ({ title, url, duree, modeTag }) => (
   <div className="imgwrap">
-    <img src={url || getImg({} as any)} alt="" />
-    <div className="imgtitle">{title}</div>
+    <img src={url} alt="" />
+    <div className="imgtitle">
+      <div className="imgtitle-row">
+        <div>
+          <span className="t">{title} </span>
+          {modeTag && <span className="mode">{modeTag}</span>}
+        </div>
+        {duree && <div className="duree">⏱ {duree}</div>}
+      </div>
+    </div>
   </div>
 );
 
 const EventMini: React.FC<{ ev: Epreuve; onClick: () => void }> = ({ ev, onClick }) => (
   <div onClick={onClick} style={{ cursor: "pointer" }}>
-    <div className="imgwrap">
-      <img src={getImg(ev)} alt="" />
-      <div className="imgtitle">{ev.nom}</div>
-    </div>
-    <div className="meta">{ev.categorie} • ⏱ {ev.duree}</div>
+    <CardImage title={ev.nom} url={getImg(ev)} duree={ev.duree} />
+    {/* Catégorie supprimée, on garde uniquement la durée (déjà à droite dans la bannière) */}
     <div className="statsBlock">
       <StatLine label="Physique" value={ev.normal.phy} />
       <StatLine label="Adresse" value={ev.normal.adr} />
@@ -324,17 +362,26 @@ const EventMini: React.FC<{ ev: Epreuve; onClick: () => void }> = ({ ev, onClick
 const ScreenHome: React.FC<{ onOrganizer: () => void; onJoin: (code: string) => void }> = ({ onOrganizer, onJoin }) => {
   const [code, setCode] = useState("");
   return (
-    <div className="header">
-      <h1 className="h1">Olympiades — Votez pour vos épreuves</h1>
-      <p className="sub">L’animateur vous invite à choisir vos défis préférés.</p>
-      <div className="toolbar">
-        <input className="input" placeholder="Code (ex: SPARTIATE-123)"
-               value={code} onChange={e => setCode(e.target.value)} />
-        <button className="btn primary" onClick={() => onJoin(code || prompt("Code de session ?") || "")}>
-          Rejoindre une session
-        </button>
-        <button className="btn" onClick={onOrganizer}>Créer une session</button>
-      </div>
+    <div className="container">
+      <section className="hero">
+        <div className="hero-bg" style={{ backgroundImage: "url(/hero-placeholder.jpg)" }} aria-hidden="true" />
+        <div className="hero-ov" aria-hidden="true" />
+        <div className="hero-content">
+          <h1>Olympiades — Votez pour vos épreuves</h1>
+          <p>
+            Choisissez vos épreuves préférées, classez-les, et préparez la mêlée.
+            L’animateur composera le programme parfait. Prêts à transpirer élégamment&nbsp;?
+          </p>
+          <div className="toolbar" style={{ marginTop: 20 }}>
+            <input className="input" placeholder="Code (ex: 123456)"
+                   value={code} onChange={e => setCode(e.target.value)} />
+            <button className="btn primary" onClick={() => onJoin(code || prompt("Code de session ?") || "")}>
+              Rejoindre une session
+            </button>
+            <button className="btn" onClick={onOrganizer}>Créer une session</button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };
@@ -348,29 +395,26 @@ const ScreenCreate: React.FC<{
   const selectedArr = DATA.filter(e => selected.has(e.id));
   const [creating, setCreating] = useState(false);
 
-const createSession = async () => {
-  setCreating(true);
-  const r = await fetch(`${API}/session`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ selectedIds: Array.from(selected) })
-  }).then(r => r.json()).catch(() => null);
-  setCreating(false);
+  const createSession = async () => {
+    setCreating(true);
+    const r = await fetch(`${API}/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ selectedIds: Array.from(selected) })
+    }).then(r => r.json()).catch(() => null);
+    setCreating(false);
 
-  if (r?.ok) {
-    // Met dans le badge (si présent)
-    const badge = document.getElementById('session-code-badge');
-    if (badge) {
-      badge.replaceChildren(document.createTextNode(r.code));
+    if (r?.ok) {
+      // Met dans un éventuel badge dans l'écran Créer (si tu en ajoutes un)
+      const badge = document.getElementById('session-code-badge');
+      if (badge) badge.replaceChildren(document.createTextNode(r.code));
+      alert(`Session créée: ${r.code}\nLien: ${location.origin}${r.url}`);
+      onStart(r.code);
+    } else {
+      alert("Erreur création session");
     }
+  };
 
-    alert(`Session créée: ${r.code}\nLien: ${location.origin}${r.url}`);
-    onStart(r.code);
-  } else {
-    alert("Erreur création session");
-  }
-};
-   
   return (
     <div className="container">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -385,20 +429,17 @@ const createSession = async () => {
         {DATA.map(ev => (
           <div key={ev.id} className={`card ${selected.has(ev.id) ? "card-sel" : ""}`}>
             <div onClick={() => onDetail(ev)} style={{ cursor: "pointer" }}>
-              <div className="imgwrap">
-                <img src={getImg(ev)} alt="" />
-                <div className="imgtitle">{ev.nom}</div>
-              </div>
+              <CardImage title={ev.nom} url={getImg(ev)} duree={ev.duree} />
             </div>
             <div className="card-body">
-              <div className="meta">{ev.categorie} • ⏱ {ev.duree}</div>
+              {/* Catégorie supprimée, durée déjà affichée à droite dans la bannière */}
               <div className="statsBlock">
                 <StatLine label="Physique" value={ev.normal.phy} />
                 <StatLine label="Adresse" value={ev.normal.adr} />
                 <StatLine label="Réflexion" value={ev.normal.ref} />
                 <StatLine label="Sabotage" value={ev.normal.sab} />
               </div>
-              <p style={{ fontSize: 15 }}>{ev.normal.desc}</p>
+              <p className="desc">{ev.normal.desc}</p>
               <div className="card-footer">
                 <button className="btn sm" onClick={() => toggle(ev.id)}>
                   {selected.has(ev.id) ? "Retirer" : "Ajouter"}
@@ -433,17 +474,14 @@ const ScreenDetail: React.FC<{ ev: Epreuve; onBack: () => void }> = ({ ev, onBac
       <button className="btn sm" onClick={onBack}>← Retour</button>
       <div className="detailWrap" style={{ marginTop: 12 }}>
         <div>
-          <div className="imgwrap">
-            <img src={getImg(ev)} alt="" />
-            <div className="imgtitle">{ev.nom}</div>
-          </div>
+          <CardImage title={ev.nom} url={getImg(ev)} duree={ev.duree} />
         </div>
         <div>
           <div className="panel" style={{ marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <div style={{ color: "var(--bronze)", fontSize: 24 }}>{ev.nom}</div>
-                <div className="sub">{ev.categorie} • ⏱ {ev.duree}</div>
+                {/* Catégorie retirée ici aussi, seule la durée est utile et déjà visible dans l'image */}
               </div>
               <div className="badges">
                 <button className={`pill ${mode === "normal" ? "active" : ""}`} onClick={() => setMode("normal")}>Normal</button>
@@ -456,7 +494,7 @@ const ScreenDetail: React.FC<{ ev: Epreuve; onBack: () => void }> = ({ ev, onBac
 
           <div className="panel">
             <div style={{ opacity: .8 }}>Description (Normal)</div>
-            <p style={{ marginTop: 6, fontSize: 16 }}>{n.desc}</p>
+            <p className="desc">{n.desc}</p>
             <div className="statsBlock">
               <StatLine label="Physique" value={n.phy} />
               <StatLine label="Adresse" value={n.adr} />
@@ -468,7 +506,7 @@ const ScreenDetail: React.FC<{ ev: Epreuve; onBack: () => void }> = ({ ev, onBac
           {mode === "hardcore" && hasHC && h && (
             <div className="panel hc" style={{ marginTop: 12 }}>
               <div style={{ opacity: .8 }}>+ Variante Hardcore</div>
-              <p style={{ marginTop: 6, fontSize: 16 }}>{h.desc}</p>
+              <p className="desc">{h.desc}</p>
               <div className="statsBlock">
                 <StatLine label="Physique" value={h.phy} />
                 <StatLine label="Adresse" value={h.adr} />
@@ -505,19 +543,21 @@ const DraggableEventCard: React.FC<{ item: Item; onDragStart: (e: React.DragEven
     const fullDesc = item.mode === "normal" ? stats.desc : `${item.ev.normal.desc} — Variante Hardcore : ${stats.desc}`;
     return (
       <div className="dragCard" draggable onDragStart={(e) => onDragStart(e, item, "pool")}>
-        <div className="imgwrap">
-          <img src={getImg(item.ev)} alt="" />
-          <div className="imgtitle">{item.ev.nom} {item.mode === "normal" ? "(Normal)" : "(Hardcore)"}</div>
-        </div>
+        <CardImage
+          title={item.ev.nom}
+          modeTag={item.mode === "normal" ? "(normal)" : "(hardcore)"}
+          url={getImg(item.ev)}
+          duree={item.ev.duree}
+        />
         <div className="body">
-          <div className="meta">{item.ev.categorie} • ⏱ {item.ev.duree}</div>
+          {/* Catégorie retirée */}
           <div className="statsBlock">
             <StatLine label="Physique" value={stats.phy} />
             <StatLine label="Adresse" value={stats.adr} />
             <StatLine label="Réflexion" value={stats.ref} />
             <StatLine label="Sabotage" value={stats.sab} />
           </div>
-          <p style={{ marginTop: 8, fontSize: 15 }}>{fullDesc}</p>
+          <p className="desc" style={{ marginTop: 8 }}>{fullDesc}</p>
         </div>
       </div>
     );
@@ -559,6 +599,9 @@ const ScreenVote: React.FC<{
 
   return (
     <div className="container">
+      {/* Badge code session en haut à droite */}
+      {sessionCode && <div className="sessionBadge">Code&nbsp;: {sessionCode}</div>}
+
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
         <input className="input" placeholder="Ton pseudo" value={voter} onChange={e => setVoter(e.target.value)} />
         <button className="btn primary" onClick={submit}>Envoyer mes votes</button>
