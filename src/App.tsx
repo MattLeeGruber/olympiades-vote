@@ -370,7 +370,7 @@ const ScreenHome: React.FC<{ onOrganizer: () => void; onJoin: (code: string) => 
           <h1>Olympiades — Quelles épreuves vas-tu préférer !</h1>
           <p>
             Choisissez vos épreuves préférées, classez-les, et préparez la mêlée.
-            L’animateur composera le programme parfait. Prêts à transpirer élégamment&nbsp;?
+            L’animateur composera le programme parfait. Prêts à transpirer&nbsp;?
           </p>
           <div className="toolbar" style={{ marginTop: 20 }}>
             <input className="input" placeholder="Code (ex: 123456)"
