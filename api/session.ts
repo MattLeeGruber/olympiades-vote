@@ -24,8 +24,7 @@ async function setKV(key: string, value: any) {
   });
 }
 
-const WORDS = ["SPARTIATE","PHENIX","SCORPION","HYDRE","CENTAURE","CYCLOPE","MANTICORE","CERBERE","PEGASE","HARPYE"];
-const genCode = () => `${WORDS[Math.floor(Math.random()*WORDS.length)]}-${100+Math.floor(Math.random()*900)}`;
+const genCode = () => String(Math.floor(100000 + Math.random() * 900000));
 
 async function readBody(req: any) {
   try {
