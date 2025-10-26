@@ -605,12 +605,38 @@ const ScreenVote: React.FC<{
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
         <input className="input" placeholder="Ton pseudo" value={voter} onChange={e => setVoter(e.target.value)} />
         <button className="btn primary" onClick={submit}>Envoyer mes votes</button>
-        {sessionCode && (
-          <>
-            <a className="btn" href={`${API}/session/${sessionCode}/results`} target="_blank">Résultats (JSON)</a>
-            <a className="btn" href={`${API}/session/${sessionCode}/export.csv`} target="_blank" rel="noreferrer">Export CSV</a>
-          </>
-        )}
+       {sessionCode && (
+  <>
+    <button
+      className="btn"
+      onClick={() => {
+        const pin = localStorage.getItem("adminPin") || prompt("PIN animateur ?") || "";
+        if (!pin) return;
+        window.open(
+          `${API}/session/${encodeURIComponent(sessionCode)}/results?admin=${encodeURIComponent(pin)}`,
+          "_blank"
+        );
+      }}
+    >
+      Résultats (JSON)
+    </button>
+
+    <button
+      className="btn"
+      onClick={() => {
+        const pin = localStorage.getItem("adminPin") || prompt("PIN animateur ?") || "";
+        if (!pin) return;
+        window.open(
+          `${API}/session/${encodeURIComponent(sessionCode)}/export?admin=${encodeURIComponent(pin)}`,
+          "_blank"
+        );
+      }}
+    >
+      Export CSV
+    </button>
+  </>
+)}
+
       </div>
 
       <div className="dropRow">
