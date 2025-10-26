@@ -380,10 +380,7 @@ const createSession = async () => {
         </button>
       </div>
       <p className="sub">Sélection de l’animateur pour le vote des participants.</p>
-<div className="mt-3 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-base tracking-wide">
-  <span>Code de session :</span>
-  <span id="session-code-badge" className="font-mono tabular-nums"></span>
-</div>
+
       <div className="grid4" style={{ marginTop: 12 }}>
         {DATA.map(ev => (
           <div key={ev.id} className={`card ${selected.has(ev.id) ? "card-sel" : ""}`}>
