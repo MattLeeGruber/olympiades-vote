@@ -1,37 +1,13 @@
+import { kv } from '@vercel/kv';
+
 async function getKV<T=any>(key: string): Promise<T|null> {
-  const r = await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/get/${encodeURIComponent(key)}`, {
-    headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}` }
-  });
-  if (!r.ok) return null;
-  const text = await r.text();
-  return text ? JSON.parse(text) : null;
+  return (await kv.get(key)) as T | null;
 }
 
 async function setKV(key: string, value: any) {
-  await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/set/${encodeURIComponent(key)}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}` },
-    body: JSON.stringify(value)
-  });
-}
-import type { VercelRequest, VercelResponse } from '@vercel/node'
-
-async function getKV<T=any>(key: string): Promise<T|null> {
-  const r = await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/get/${encodeURIComponent(key)}`, {
-    headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}` }
-  });
-  if (!r.ok) return null;
-  const text = await r.text();
-  return text ? JSON.parse(text) : null;
+  await kv.set(key, value);
 }
 
-async function setKV(key: string, value: any) {
-  await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/set/${encodeURIComponent(key)}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}` },
-    body: JSON.stringify(value)
-  });
-}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const code = (req.query.code as string) || '';
