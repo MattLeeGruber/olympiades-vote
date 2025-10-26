@@ -44,16 +44,24 @@ export default async function handler(req: any, res: any) {
     await ensureTable();
 
     const body = await readBody(req);
-    const { selectedIds = [], theme = "bronze", adminPin = "" } = body || {};
-    if (!Array.isArray(selectedIds)) return res.status(400).json({ ok:false, error:"selectedIds doit être un tableau" });
-    if (!adminPin) return res.status(400).json({ ok:false, error:"adminPin requis" });
+    const { selectedIds = [], theme = "bronze" } = body || {};
+
+    // 👉 On accepte le PIN soit depuis le body, soit depuis l'env ADMIN_PIN
+    const adminPin = String((body?.adminPin ?? process.env.ADMIN_PIN ?? "")).trim();
+
+    if (!Array.isArray(selectedIds)) {
+      return res.status(400).json({ ok:false, error:"selectedIds doit être un tableau" });
+    }
+    if (!adminPin) {
+      return res.status(400).json({ ok:false, error:"adminPin requis (body.adminPin ou variable Vercel ADMIN_PIN)" });
+    }
 
     const code = genCode();
     const session = {
       code,
       theme,
       selectedIds,
-      adminPin,            // nouveau champ
+      adminPin,            // on stocke le PIN animateur
       createdAt: Date.now(),
       votes: [] as any[],
       closed: false
