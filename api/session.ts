@@ -1,14 +1,14 @@
 import { createClient } from "@libsql/client";
 
 function db() {
-  const url = process.env.TURSO_DATABASE_URL!;
-  const token = process.env.TURSO_AUTH_TOKEN!;
-  return createClient({ url, authToken: token });
+  return createClient({
+    url: process.env.TURSO_DATABASE_URL!,
+    authToken: process.env.TURSO_AUTH_TOKEN!
+  });
 }
 
 async function ensureTable() {
-  const client = db();
-  await client.execute(`
+  await db().execute(`
     CREATE TABLE IF NOT EXISTS kv (
       key   TEXT PRIMARY KEY,
       value TEXT
@@ -17,28 +17,24 @@ async function ensureTable() {
 }
 
 async function getKV<T = any>(key: string): Promise<T | null> {
-  const client = db();
-  const result = await client.execute({
+  const r = await db().execute({
     sql: "SELECT value FROM kv WHERE key = ?",
-    args: [key],
+    args: [key]
   });
-  if (result.rows.length === 0) return null;
-  const raw = result.rows[0].value as string;
-  return JSON.parse(raw);
+  if (r.rows.length === 0) return null;
+  return JSON.parse(r.rows[0].value as string);
 }
 
 async function setKV(key: string, value: any) {
-  const client = db();
-  await client.execute({
+  await db().execute({
     sql: "INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)",
-    args: [key, JSON.stringify(value)],
+    args: [key, JSON.stringify(value)]
   });
 }
 
 const WORDS = ["SPARTIATE","PHENIX","SCORPION","HYDRE","CENTAURE","CYCLOPE","MANTICORE","CERBERE","PEGASE","HARPYE"];
 const genCode = () => `${WORDS[Math.floor(Math.random()*WORDS.length)]}-${100+Math.floor(Math.random()*900)}`;
 
-// lecture sûre du body (fonctionne avec Vercel)
 async function readBody(req: any) {
   try {
     if (req.body) {
@@ -73,13 +69,13 @@ export default async function handler(req: any, res: any) {
       theme,
       selectedIds,
       createdAt: Date.now(),
-      votes: [] as any[],
+      votes: [] as any[]
     };
 
     await setKV(`session:${code}`, session);
+
     return res.status(200).json({ ok: true, code, url: `/join/${code}` });
   } catch (e: any) {
-    // log lisible côté client si jamais
     return res.status(500).json({ ok: false, error: e?.message || String(e) });
   }
 }
