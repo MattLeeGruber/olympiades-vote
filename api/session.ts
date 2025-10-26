@@ -53,7 +53,7 @@ export default async function handler(req: any, res: any) {
       code,
       theme,
       selectedIds,
-      adminPin,            // ← on stocke le PIN animateur dans la session
+      adminPin,            // nouveau champ
       createdAt: Date.now(),
       votes: [] as any[],
       closed: false
