@@ -367,7 +367,7 @@ const ScreenHome: React.FC<{ onOrganizer: () => void; onJoin: (code: string) => 
         <div className="hero-bg" style={{ backgroundImage: "url(/hero-placeholder.jpg)" }} aria-hidden="true" />
         <div className="hero-ov" aria-hidden="true" />
         <div className="hero-content">
-          <h1>Olympiades — Votez pour vos épreuves</h1>
+          <h1>Olympiades — Quelles épreuves vas-tu préférer !</h1>
           <p>
             Choisissez vos épreuves préférées, classez-les, et préparez la mêlée.
             L’animateur composera le programme parfait. Prêts à transpirer élégamment&nbsp;?
