@@ -17,6 +17,7 @@ type Epreuve = {
   normal: ModeStats;
   hardcore: ModeStats | null;
   imageUrl?: string;
+  logoUrl?: string; // NEW: logo spécifique placé au-dessus de l'image
 };
 
 type Item = { key: string; mode: "normal" | "hardcore"; ev: Epreuve };
@@ -61,21 +62,21 @@ const DATA: Epreuve[] = [
       desc: "Pas de récipient, uniquement avec vos mains. Et faites tomber les cibles ennemies pour éliminer les adversaires."
     }
   },
- {
-  id: "mer-brasiers",
-  nom: "La Mer des Brasiers",
-  categorie: "Physique & Réflexion",
-  duree: "5 min par équipe",
-  normal: {
-    phy: 5,
-    adr: 1,
-    ref: 3,
-    sab: 0,
-    desc: "Bataille navale XXL : déplacez des poids sur une grille géante pour couler le navire ennemi."
+  {
+    id: "mer-brasiers",
+    nom: "La Mer des Brasiers",
+    categorie: "Physique & Réflexion",
+    duree: "5 min par équipe",
+    normal: {
+      phy: 5,
+      adr: 1,
+      ref: 3,
+      sab: 0,
+      desc: "Bataille navale XXL : déplacez des poids sur une grille géante pour couler le navire ennemi."
+    },
+    hardcore: null,
+    logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
   },
-  hardcore: null,
-  logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
-},
   {
     id: "cercle-codes",
     nom: "Le Cercle des Codes",
@@ -223,6 +224,18 @@ a{color:inherit}
 .imgtitle .mode{font-size:12px; opacity:.85}
 .imgtitle .duree{font-size:13px; opacity:.95; white-space:nowrap}
 
+/* NEW: logo décoratif au-dessus de l'image */
+.img-top-deco{
+  position:absolute;
+  top:10px;
+  left:0;
+  right:0;
+  display:flex;
+  justify-content:center;
+  z-index:2;
+  pointer-events:none;
+}
+
 .statsBlock{display:flex;flex-direction:column;gap:6px;margin-top:6px}
 .statRow{display:flex;justify-content:space-between;align-items:center;font-size:16px;color:#222}
 /* Etoiles lisibles */
@@ -332,24 +345,63 @@ function useDnD(initial: Item[]) {
 /* =======================
    Petits composants
 ======================= */
-const CardImage: React.FC<{ title: string; url?: string; duree?: string; modeTag?: string }> = ({ title, url, duree, modeTag }) => (
-  <div className="imgwrap">
-    <img src={url} alt="" />
-    <div className="imgtitle">
-      <div className="imgtitle-row">
-        <div>
-          <span className="t">{title} </span>
-          {modeTag && <span className="mode">{modeTag}</span>}
+// slugify robuste pour fallback fichier logo
+const slugify = (s: string) =>
+  s.normalize("NFD")
+   .replace(/[\u0300-\u036f]/g, "")   // accents
+   .replace(/['’]/g, "")              // apostrophes
+   .replace(/[^a-zA-Z0-9]+/g, "-")    // non alphanum -> -
+   .replace(/^-+|-+$/g, "")
+   .toLowerCase();
+
+const CardImage: React.FC<{
+  title: string;
+  url?: string;
+  duree?: string;
+  modeTag?: string;
+  logoUrl?: string; // NEW
+  idForAuto?: string; // NEW: pour fallback /logos/{id}.png
+}> = ({ title, url, duree, modeTag, logoUrl, idForAuto }) => {
+  // ordre de priorité du logo : explicite -> /logos/{id}.png -> /logos/{slug-titre}.png
+  const autoById   = idForAuto ? `/logos/${idForAuto}.png` : undefined;
+  const autoByName = `/logos/${slugify(title)}.png`;
+  const topLogo = logoUrl || autoById || autoByName;
+
+  return (
+    <div className="imgwrap">
+      {/* image principale */}
+      <img src={url} alt="" />
+
+      {/* logo au-dessus */}
+      <div className="img-top-deco">
+        <img
+          src={topLogo}
+          alt={title}
+          style={{ width: "60%", maxWidth: 180, height: "auto", objectFit: "contain", filter: "drop-shadow(0 2px 6px rgba(0,0,0,.3))" }}
+          onError={(e) => {
+            // masque le logo si le fichier n'existe pas
+            (e.currentTarget as HTMLImageElement).style.display = "none";
+          }}
+        />
+      </div>
+
+      {/* Bande marron (titre/durée) */}
+      <div className="imgtitle">
+        <div className="imgtitle-row">
+          <div>
+            <span className="t">{title} </span>
+            {modeTag && <span className="mode">{modeTag}</span>}
+          </div>
+          {duree && <div className="duree">⏱ {duree}</div>}
         </div>
-        {duree && <div className="duree">⏱ {duree}</div>}
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const EventMini: React.FC<{ ev: Epreuve; onClick: () => void }> = ({ ev, onClick }) => (
   <div onClick={onClick} style={{ cursor: "pointer" }}>
-    <CardImage title={ev.nom} url={getImg(ev)} duree={ev.duree} />
+    <CardImage title={ev.nom} url={getImg(ev)} duree={ev.duree} logoUrl={ev.logoUrl} idForAuto={ev.id} />
     {/* Catégorie supprimée, on garde uniquement la durée (déjà à droite dans la bannière) */}
     <div className="statsBlock">
       <StatLine label="Physique" value={ev.normal.phy} />
@@ -433,7 +485,7 @@ const ScreenCreate: React.FC<{
         {DATA.map(ev => (
           <div key={ev.id} className={`card ${selected.has(ev.id) ? "card-sel" : ""}`}>
             <div onClick={() => onDetail(ev)} style={{ cursor: "pointer" }}>
-              <CardImage title={ev.nom} url={getImg(ev)} duree={ev.duree} />
+              <CardImage title={ev.nom} url={getImg(ev)} duree={ev.duree} logoUrl={ev.logoUrl} idForAuto={ev.id} />
             </div>
             <div className="card-body">
               {/* Catégorie supprimée, durée déjà affichée à droite dans la bannière */}
@@ -478,7 +530,7 @@ const ScreenDetail: React.FC<{ ev: Epreuve; onBack: () => void }> = ({ ev, onBac
       <button className="btn sm" onClick={onBack}>← Retour</button>
       <div className="detailWrap" style={{ marginTop: 12 }}>
         <div>
-          <CardImage title={ev.nom} url={getImg(ev)} duree={ev.duree} />
+          <CardImage title={ev.nom} url={getImg(ev)} duree={ev.duree} logoUrl={ev.logoUrl} idForAuto={ev.id} />
         </div>
         <div>
           <div className="panel" style={{ marginBottom: 12 }}>
@@ -552,6 +604,8 @@ const DraggableEventCard: React.FC<{ item: Item; onDragStart: (e: React.DragEven
           modeTag={item.mode === "normal" ? "(normal)" : "(hardcore)"}
           url={getImg(item.ev)}
           duree={item.ev.duree}
+          logoUrl={item.ev.logoUrl}
+          idForAuto={item.ev.id}
         />
         <div className="body">
           {/* Catégorie retirée */}
@@ -609,38 +663,37 @@ const ScreenVote: React.FC<{
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
         <input className="input" placeholder="Ton pseudo" value={voter} onChange={e => setVoter(e.target.value)} />
         <button className="btn primary" onClick={submit}>Envoyer mes votes</button>
-       {sessionCode && (
-  <>
-    <button
-      className="btn"
-      onClick={() => {
-        const pin = localStorage.getItem("adminPin") || prompt("PIN animateur ?") || "";
-        if (!pin) return;
-        window.open(
-          `${API}/session/${encodeURIComponent(sessionCode)}/results?admin=${encodeURIComponent(pin)}`,
-          "_blank"
-        );
-      }}
-    >
-      Résultats (JSON)
-    </button>
+        {sessionCode && (
+          <>
+            <button
+              className="btn"
+              onClick={() => {
+                const pin = localStorage.getItem("adminPin") || prompt("PIN animateur ?") || "";
+                if (!pin) return;
+                window.open(
+                  `${API}/session/${encodeURIComponent(sessionCode)}/results?admin=${encodeURIComponent(pin)}`,
+                  "_blank"
+                );
+              }}
+            >
+              Résultats (JSON)
+            </button>
 
-    <button
-      className="btn"
-      onClick={() => {
-        const pin = localStorage.getItem("adminPin") || prompt("PIN animateur ?") || "";
-        if (!pin) return;
-        window.open(
-          `${API}/session/${encodeURIComponent(sessionCode)}/export?admin=${encodeURIComponent(pin)}`,
-          "_blank"
-        );
-      }}
-    >
-      Export CSV
-    </button>
-  </>
-)}
-
+            <button
+              className="btn"
+              onClick={() => {
+                const pin = localStorage.getItem("adminPin") || prompt("PIN animateur ?") || "";
+                if (!pin) return;
+                window.open(
+                  `${API}/session/${encodeURIComponent(sessionCode)}/export?admin=${encodeURIComponent(pin)}`,
+                  "_blank"
+                );
+              }}
+            >
+              Export CSV
+            </button>
+          </>
+        )}
       </div>
 
       <div className="dropRow">
