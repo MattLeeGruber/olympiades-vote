@@ -226,18 +226,30 @@ a{color:inherit}
 
 /* NEW: logo décoratif au-dessus de l'image */
 /* NEW: le logo couvre toute la zone d'image */
+/* Le logo couvre toute la zone image */
 .img-top-deco{
   position:absolute;
-  inset:0;              /* top:0; right:0; bottom:0; left:0 */
-  z-index:2;
-  pointer-events:none;  /* clics passent à travers */
+  inset:0;
+  z-index:2;           /* sous la bande */
+  pointer-events:none;
 }
 .img-top-deco img{
   width:100%;
   height:100%;
-  object-fit:cover;     /* remplit sans bandes */
+  object-fit:cover;    /* ou 'contain' si tu veux éviter le rognage */
   display:block;
 }
+
+/* Bande marron au-dessus du logo */
+.imgtitle{
+  position:absolute;
+  left:0; right:0; bottom:0;
+  background:rgba(127,90,47,.92);
+  color:#fff;
+  padding:10px 12px;
+  z-index:5;           /* <<< clé : au-dessus du logo */
+}
+
 
 
 .statsBlock{display:flex;flex-direction:column;gap:6px;margin-top:6px}
