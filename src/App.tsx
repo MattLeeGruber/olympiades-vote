@@ -349,30 +349,20 @@ function useDnD(initial: Item[]) {
 /* =======================
    Petits composants
 ======================= */
-// slugify robuste pour fallback fichier logo
-const slugify = (s: string) =>
-  s.normalize("NFD")
-   .replace(/[\u0300-\u036f]/g, "")
-   .replace(/['’]/g, "")
-   .replace(/[^a-zA-Z0-9]+/g, "-")
-   .replace(/^-+|-+$/g, "")
-   .toLowerCase();
-
 const CardImage: React.FC<{
   title: string;
   url?: string;
   duree?: string;
   modeTag?: string;
-  logoUrl?: string;   // <= passe ev.logoUrl ici
-  idForAuto?: string; // <= passe ev.id ici pour fallback /logos/{id}.png
+  logoUrl?: string;   // optionnel : logo spécifique
+  idForAuto?: string; // optionnel : fallback /logos/{id}.png
 }> = ({ title, url, duree, modeTag, logoUrl, idForAuto }) => {
-  const autoById   = idForAuto ? `/logos/${idForAuto}.png` : undefined;
-  const autoByName = `/logos/${slugify(title)}.png`;
-  const topLogo = logoUrl || autoById || autoByName;
+  // priorité : logoUrl explicite -> /logos/{id}.png -> rien
+  const topLogo = logoUrl ?? (idForAuto ? `/logos/${idForAuto}.png` : undefined);
 
   return (
     <div className="imgwrap">
-      {/* image de fond (si tu veux la garder sous le logo plein écran) */}
+      {/* image de fond si tu veux la conserver */}
       <img src={url} alt="" />
 
       {/* LOGO plein écran par-dessus */}
@@ -381,7 +371,7 @@ const CardImage: React.FC<{
           <img
             src={topLogo}
             alt={title}
-            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+            onError={(e: any) => { e.currentTarget.style.display = "none"; }}
           />
         </div>
       )}
@@ -399,6 +389,7 @@ const CardImage: React.FC<{
     </div>
   );
 };
+
 
 
 const EventMini: React.FC<{ ev: Epreuve; onClick: () => void }> = ({ ev, onClick }) => (
