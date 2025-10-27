@@ -225,16 +225,20 @@ a{color:inherit}
 .imgtitle .duree{font-size:13px; opacity:.95; white-space:nowrap}
 
 /* NEW: logo décoratif au-dessus de l'image */
+/* NEW: le logo couvre toute la zone d'image */
 .img-top-deco{
   position:absolute;
-  top:10px;
-  left:0;
-  right:0;
-  display:flex;
-  justify-content:center;
+  inset:0;              /* top:0; right:0; bottom:0; left:0 */
   z-index:2;
-  pointer-events:none;
+  pointer-events:none;  /* clics passent à travers */
 }
+.img-top-deco img{
+  width:100%;
+  height:100%;
+  object-fit:cover;     /* remplit sans bandes */
+  display:block;
+}
+
 
 .statsBlock{display:flex;flex-direction:column;gap:6px;margin-top:6px}
 .statRow{display:flex;justify-content:space-between;align-items:center;font-size:16px;color:#222}
