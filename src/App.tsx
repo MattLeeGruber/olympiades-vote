@@ -352,9 +352,9 @@ function useDnD(initial: Item[]) {
 // slugify robuste pour fallback fichier logo
 const slugify = (s: string) =>
   s.normalize("NFD")
-   .replace(/[\u0300-\u036f]/g, "")   // accents
-   .replace(/['’]/g, "")              // apostrophes
-   .replace(/[^a-zA-Z0-9]+/g, "-")    // non alphanum -> -
+   .replace(/[\u0300-\u036f]/g, "")
+   .replace(/['’]/g, "")
+   .replace(/[^a-zA-Z0-9]+/g, "-")
    .replace(/^-+|-+$/g, "")
    .toLowerCase();
 
@@ -363,31 +363,28 @@ const CardImage: React.FC<{
   url?: string;
   duree?: string;
   modeTag?: string;
-  logoUrl?: string; // NEW
-  idForAuto?: string; // NEW: pour fallback /logos/{id}.png
+  logoUrl?: string;   // <= passe ev.logoUrl ici
+  idForAuto?: string; // <= passe ev.id ici pour fallback /logos/{id}.png
 }> = ({ title, url, duree, modeTag, logoUrl, idForAuto }) => {
-  // ordre de priorité du logo : explicite -> /logos/{id}.png -> /logos/{slug-titre}.png
   const autoById   = idForAuto ? `/logos/${idForAuto}.png` : undefined;
   const autoByName = `/logos/${slugify(title)}.png`;
   const topLogo = logoUrl || autoById || autoByName;
 
   return (
     <div className="imgwrap">
-      {/* image principale */}
+      {/* image de fond (si tu veux la garder sous le logo plein écran) */}
       <img src={url} alt="" />
 
-      {/* logo au-dessus */}
-      <div className="img-top-deco">
-        <img
-          src={topLogo}
-          alt={title}
-          style={{ width: "60%", maxWidth: 180, height: "auto", objectFit: "contain", filter: "drop-shadow(0 2px 6px rgba(0,0,0,.3))" }}
-          onError={(e) => {
-            // masque le logo si le fichier n'existe pas
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-        />
-      </div>
+      {/* LOGO plein écran par-dessus */}
+      {topLogo && (
+        <div className="img-top-deco">
+          <img
+            src={topLogo}
+            alt={title}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+          />
+        </div>
+      )}
 
       {/* Bande marron (titre/durée) */}
       <div className="imgtitle">
@@ -402,6 +399,7 @@ const CardImage: React.FC<{
     </div>
   );
 };
+
 
 const EventMini: React.FC<{ ev: Epreuve; onClick: () => void }> = ({ ev, onClick }) => (
   <div onClick={onClick} style={{ cursor: "pointer" }}>
