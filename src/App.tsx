@@ -61,17 +61,21 @@ const DATA: Epreuve[] = [
       desc: "Pas de récipient, uniquement avec vos mains. Et faites tomber les cibles ennemies pour éliminer les adversaires."
     }
   },
-  {
-    id: "mer-brasiers",
-    nom: "La Mer des Brasiers",
-    categorie: "Physique & Réflexion",
-    duree: "5 min par équipe",
-    normal: {
-      phy: 5, adr: 1, ref: 3, sab: 0,
-      desc: "Bataille navale XXL : déplacez des poids sur une grille géante pour couler le navire ennemi."
-    },
-    hardcore: null
+ {
+  id: "mer-brasiers",
+  nom: "La Mer des Brasiers",
+  categorie: "Physique & Réflexion",
+  duree: "5 min par équipe",
+  normal: {
+    phy: 5,
+    adr: 1,
+    ref: 3,
+    sab: 0,
+    desc: "Bataille navale XXL : déplacez des poids sur une grille géante pour couler le navire ennemi."
   },
+  hardcore: null,
+  logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
+},
   {
     id: "cercle-codes",
     nom: "Le Cercle des Codes",
