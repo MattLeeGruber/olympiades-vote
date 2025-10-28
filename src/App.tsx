@@ -45,7 +45,8 @@ const DATA: Epreuve[] = [
       adr: 5,
       ref: 0,
       sab: 3,
-      desc: "Seul face au temps qui file, encerclé par ceux qui veulent vous voir échouer."
+      desc: "Seul face au temps qui file, encerclé par ceux qui veulent vous voir échouer.",
+      logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
     }
   },
   {
@@ -59,7 +60,8 @@ const DATA: Epreuve[] = [
     },
     hardcore: {
       phy: 5, adr: 4, ref: 3, sab: 5,
-      desc: "Pas de récipient, uniquement avec vos mains. Et faites tomber les cibles ennemies pour éliminer les adversaires."
+      desc: "Pas de récipient, uniquement avec vos mains. Et faites tomber les cibles ennemies pour éliminer les adversaires.",
+       logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
     }
   },
   {
@@ -83,7 +85,8 @@ const DATA: Epreuve[] = [
     categorie: "Réflexion",
     duree: "15 - 20 min",
     normal: { phy: 0, adr: 0, ref: 5, sab: 0, desc: "Déjouez les pièges et craquez le code avant les autres !" },
-    hardcore: null
+    hardcore: null,
+    logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
   },
   {
     id: "secret-anciens",
@@ -91,7 +94,8 @@ const DATA: Epreuve[] = [
     categorie: "Réflexion",
     duree: "15 min",
     normal: { phy: 0, adr: 0, ref: 5, sab: 0, desc: "Soyez les plus rapides à résoudre les 3 énigmes." },
-    hardcore: null
+    hardcore: null,
+     logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
   },
   {
     id: "cryptogramme-final",
@@ -99,7 +103,8 @@ const DATA: Epreuve[] = [
     categorie: "Réflexion & Stratégie",
     duree: "10 - 20 min",
     normal: { phy: 0, adr: 1, ref: 5, sab: 0, desc: "Séparés, vous devrez vous synchroniser pour reproduire le cryptogramme." },
-    hardcore: null
+    hardcore: null,
+     logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
   },
   {
     id: "traversee-cibles",
@@ -115,7 +120,8 @@ const DATA: Epreuve[] = [
     categorie: "Adresse",
     duree: "20 - 30 min",
     normal: { phy: 2, adr: 5, ref: 0, sab: 0, desc: "Tir à l’arc : cumulez les points jusqu’au seuil pour ouvrir les portes de la victoire !" },
-    hardcore: { phy: 2, adr: 5, ref: 2, sab: 5, desc: "Vague après vague, les meilleurs dépouillent les autres de leurs flèches." }
+    hardcore: { phy: 2, adr: 5, ref: 2, sab: 5, desc: "Vague après vague, les meilleurs dépouillent les autres de leurs flèches." },
+     logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
   },
   {
     id: "nid-scorpion",
@@ -123,7 +129,8 @@ const DATA: Epreuve[] = [
     categorie: "Adresse",
     duree: "20 - 30 min",
     normal: { phy: 1, adr: 5, ref: 0, sab: 0, desc: "Cornhole en simultané : foncez vers le score avant les autres !" },
-    hardcore: { phy: 1, adr: 5, ref: 4, sab: 4, desc: "Grimper au score… ou saboter celui des autres ?" }
+    hardcore: { phy: 1, adr: 5, ref: 4, sab: 4, desc: "Grimper au score… ou saboter celui des autres ?" },
+     logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
   },
   {
     id: "relais-reliques",
@@ -131,7 +138,8 @@ const DATA: Epreuve[] = [
     categorie: "Physique",
     duree: "5 min par équipe",
     normal: { phy: 5, adr: 2, ref: 1, sab: 0, desc: "Portez les charges à l'endroit prévu. Préparez-vous à souffrir." },
-    hardcore: { phy: 5, adr: 4, ref: 1, sab: 0, desc: "Au choix : être attachés ensemble ou utiliser la planche instable." }
+    hardcore: { phy: 5, adr: 4, ref: 1, sab: 0, desc: "Au choix : être attachés ensemble ou utiliser la planche instable." },
+     logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
   },
   {
     id: "souleve-pack",
@@ -139,7 +147,8 @@ const DATA: Epreuve[] = [
     categorie: "Physique",
     duree: "5 min",
     normal: { phy: 5, adr: 0, ref: 0, sab: 3, desc: "Force et résistance : gardez les bras tendus, chargés de poids, jusqu’à l’abandon des rivaux." },
-    hardcore: { phy: 5, adr: 0, ref: 0, sab: 3, desc: "Un seul joueur se sacrifie aux charges. Les autres gênent les adversaires." }
+    hardcore: { phy: 5, adr: 0, ref: 0, sab: 3, desc: "Un seul joueur se sacrifie aux charges. Les autres gênent les adversaires." },
+     logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
   },
   {
     id: "traque-dunes",
@@ -147,7 +156,8 @@ const DATA: Epreuve[] = [
     categorie: "Physique & Adresse",
     duree: "5 min par équipe",
     normal: { phy: 4, adr: 4, ref: 2, sab: 2, desc: "Biathlon revisité : courez, visez, abattez tout tant qu’il reste une cible debout." },
-    hardcore: { phy: 3, adr: 4, ref: 3, sab: 2, desc: "Chasse corsée et pénalités à déclencher au bon moment." }
+    hardcore: { phy: 3, adr: 4, ref: 3, sab: 2, desc: "Chasse corsée et pénalités à déclencher au bon moment." },
+     logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
   },
   {
     id: "labyrinthe-tourments",
@@ -155,7 +165,8 @@ const DATA: Epreuve[] = [
     categorie: "Physique & Adresse",
     duree: "10 - 15 min",
     normal: { phy: 3, adr: 4, ref: 0, sab: 2, desc: "Dénichez le palet puis placez-le sur la planche !" },
-    hardcore: { phy: 3, adr: 4, ref: 3, sab: 2, desc: "Une fois posé, l’enquête s’ouvre : à vous de la résoudre." }
+    hardcore: { phy: 3, adr: 4, ref: 3, sab: 2, desc: "Une fois posé, l’enquête s’ouvre : à vous de la résoudre." },
+     logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
   },
   {
     id: "pauvres-fous",
@@ -163,7 +174,8 @@ const DATA: Epreuve[] = [
     categorie: "Réflexion & Stratégie",
     duree: "20 - 30 min",
     normal: { phy: 1, adr: 1, ref: 5, sab: 0, desc: "Votre compagnon est prisonnier. Explorez, déjouez et trouvez la clé." },
-    hardcore: null
+    hardcore: null,
+     logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
   },
   {
     id: "equations-feu",
@@ -171,7 +183,8 @@ const DATA: Epreuve[] = [
     categorie: "Réflexion & Adresse",
     duree: "15 - 20 min",
     normal: { phy: 2, adr: 4, ref: 5, sab: 0, desc: "1 équation 1 cible. Et on recommence jusqu’à la fin !" },
-    hardcore: null
+    hardcore: null,
+     logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
   }
 ];
 
