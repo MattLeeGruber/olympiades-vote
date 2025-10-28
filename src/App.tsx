@@ -40,7 +40,7 @@ const DATA: Epreuve[] = [
     hardcore: {
       phy: 1, adr: 5, ref: 0, sab: 3,
       desc: "Seul face au temps qui file, encerclé par ceux qui veulent vous voir échouer.",
-      logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
+      logoUrl: "https://olympiades-vote.vercel.app/sentencepilier.png"
     }
   },
   {
