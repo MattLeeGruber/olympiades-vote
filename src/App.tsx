@@ -98,7 +98,7 @@ const DATA: Epreuve[] = [
     duree: "10 - 20 min",
     normal: { phy: 0, adr: 1, ref: 5, sab: 0, desc: "Séparés, vous devrez vous synchroniser pour reproduire le cryptogramme." },
     hardcore: null,
-     logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
+     logoUrl: "https://olympiades-vote.vercel.app/Cryptogramme.png"
   },
   {
     id: "traversee-cibles",
