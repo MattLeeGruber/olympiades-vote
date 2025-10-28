@@ -55,7 +55,7 @@ const DATA: Epreuve[] = [
     hardcore: {
       phy: 5, adr: 4, ref: 3, sab: 5,
       desc: "Pas de récipient, uniquement avec vos mains. Et faites tomber les cibles ennemies pour éliminer les adversaires.",
-      logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
+      logoUrl: "https://olympiades-vote.vercel.app/coursedeleau.png"
     }
   },
   {
