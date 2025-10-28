@@ -89,7 +89,7 @@ const DATA: Epreuve[] = [
     duree: "15 min",
     normal: { phy: 0, adr: 0, ref: 5, sab: 0, desc: "Soyez les plus rapides à résoudre les 3 énigmes." },
     hardcore: null,
-     logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
+     logoUrl: "https://olympiades-vote.vercel.app/secretdesanciens.png"
   },
   {
     id: "cryptogramme-final",
