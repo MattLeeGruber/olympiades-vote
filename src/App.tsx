@@ -80,7 +80,7 @@ const DATA: Epreuve[] = [
     duree: "15 - 20 min",
     normal: { phy: 0, adr: 0, ref: 5, sab: 0, desc: "Déjouez les pièges et craquez le code avant les autres !" },
     hardcore: null,
-    logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
+    logoUrl: "https://olympiades-vote.vercel.app/lecercledescodes.png"
   },
   {
     id: "secret-anciens",
