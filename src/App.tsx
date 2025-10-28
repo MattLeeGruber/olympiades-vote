@@ -34,17 +34,11 @@ const DATA: Epreuve[] = [
     categorie: "Adresse",
     duree: "5 - 10 min",
     normal: {
-      phy: 1,
-      adr: 5,
-      ref: 0,
-      sab: 0,
+      phy: 1, adr: 5, ref: 0, sab: 0,
       desc: "Lancez et faites tomber toutes les cibles. La distance augmente à chaque palier."
     },
     hardcore: {
-      phy: 1,
-      adr: 5,
-      ref: 0,
-      sab: 3,
+      phy: 1, adr: 5, ref: 0, sab: 3,
       desc: "Seul face au temps qui file, encerclé par ceux qui veulent vous voir échouer.",
       logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
     }
@@ -61,7 +55,7 @@ const DATA: Epreuve[] = [
     hardcore: {
       phy: 5, adr: 4, ref: 3, sab: 5,
       desc: "Pas de récipient, uniquement avec vos mains. Et faites tomber les cibles ennemies pour éliminer les adversaires.",
-       logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
+      logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
     }
   },
   {
