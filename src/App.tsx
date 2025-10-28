@@ -112,7 +112,8 @@ const DATA: Epreuve[] = [
     categorie: "Adresse",
     duree: "10 - 15 min",
     normal: { phy: 2, adr: 5, ref: 0, sab: 0, desc: "Des cibles variées, des lancers en tout genre. Tout doit tomber !" },
-    hardcore: { phy: 2, adr: 5, ref: 2, sab: 3, desc: "Terminez par les cibles des adversaires pour les éliminer de la course." }
+    hardcore: { phy: 2, adr: 5, ref: 2, sab: 3, desc: "Terminez par les cibles des adversaires pour les éliminer de la course." },
+     logoUrl: "https://olympiades-vote.vercel.app/bataillenavalexxl.png"
   },
   {
     id: "souffle-serpent",
